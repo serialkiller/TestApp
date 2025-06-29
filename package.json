@@ -1,5 +1,5 @@
 {
-    "name": "chatgpt-client",
+    "name": "clientApp",
     "version": "0.1.0",
     "private": true,
     "scripts": {
