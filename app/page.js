@@ -193,7 +193,7 @@ export default function ChatPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-          <h1 className="text-2xl font-bold text-center mb-6">ChatGPT Client</h1>
+          <h1 className="text-2xl font-bold text-center mb-6">Husains App</h1>
           <p className="text-gray-600 mb-4 text-sm">
             Enter your OpenAI API key to get started. Your key will be stored locally in your browser.
           </p>
@@ -216,13 +216,8 @@ export default function ChatPage() {
           </div>
           <p className="text-xs text-gray-500 mt-4">
             Get your API key from{' '}
-            <a 
-              href="https://platform.openai.com/api-keys" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
-            >
-              OpenAI Platform
+            <a >
+              
             </a>
           </p>
         </div>
@@ -310,7 +305,7 @@ export default function ChatPage() {
                 </svg>
               </button>
               <h1 className="text-xl font-semibold truncate">
-                {conversationTitle || 'ChatGPT Client'}
+                {conversationTitle || 'Husains App'}
               </h1>
             </div>
             <div className="flex gap-2">
