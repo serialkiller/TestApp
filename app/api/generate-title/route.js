@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { messages, apiKey } = await request.json()
+    const { messages, apiKey, model = 'gpt-3.5-turbo' } = await request.json()
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })
@@ -27,7 +27,7 @@ ${messages.length > 1 ? `AI response: "${messages[1].content.substring(0, 200)}.
 Title:`
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: model,
       messages: [
         {
           role: 'system',

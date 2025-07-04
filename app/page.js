@@ -10,6 +10,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [showApiKeyInput, setShowApiKeyInput] = useState(true)
+  const [selectedModel, setSelectedModel] = useState('gpt-4o')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
@@ -17,6 +18,14 @@ export default function ChatPage() {
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Available OpenAI models
+  const availableModels = [
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Latest and most capable model' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and efficient' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Previous generation' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and cost-effective' },
+  ]
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {
@@ -35,7 +44,8 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: messages,
-          apiKey: apiKey
+          apiKey: apiKey,
+          model: selectedModel
         }),
       })
 
@@ -142,9 +152,13 @@ export default function ChatPage() {
 
   useEffect(() => {
     const savedApiKey = localStorage.getItem('openai-api-key')
+    const savedModel = localStorage.getItem('openai-model')
     if (savedApiKey) {
       setApiKey(savedApiKey)
       setShowApiKeyInput(false)
+    }
+    if (savedModel) {
+      setSelectedModel(savedModel)
     }
     loadConversations()
   }, [])
@@ -152,13 +166,21 @@ export default function ChatPage() {
   const saveApiKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem('openai-api-key', apiKey.trim())
+      localStorage.setItem('openai-model', selectedModel)
       setShowApiKeyInput(false)
     }
   }
 
+  const saveModel = (model) => {
+    localStorage.setItem('openai-model', model)
+    setSelectedModel(model)
+  }
+
   const clearApiKey = () => {
     localStorage.removeItem('openai-api-key')
+    localStorage.removeItem('openai-model')
     setApiKey('')
+    setSelectedModel('gpt-4o')
     setShowApiKeyInput(true)
     setMessages([])
   }
@@ -187,7 +209,8 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: newMessages,
-          apiKey: apiKey
+          apiKey: apiKey,
+          model: selectedModel
         }),
       })
 
@@ -271,12 +294,23 @@ export default function ChatPage() {
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onKeyPress={(e) => e.key === 'Enter' && saveApiKey()}
             />
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {availableModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name} - {model.description}
+                </option>
+              ))}
+            </select>
             <button
               onClick={saveApiKey}
               disabled={!apiKey.trim()}
               className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Save API Key
+              Save API Key & Model
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-4">
@@ -388,7 +422,19 @@ export default function ChatPage() {
                 )}
               </h1>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <select
+                value={selectedModel}
+                onChange={(e) => saveModel(e.target.value)}
+                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="Select AI Model"
+              >
+                {availableModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={createNewConversation}
                 className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors"
@@ -404,6 +450,16 @@ export default function ChatPage() {
             </div>
           </div>
         </header>
+
+        {/* Model Info */}
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+          <div className="max-w-3xl mx-auto">
+            <p className="text-xs text-gray-600">
+              Using: <span className="font-medium">{availableModels.find(m => m.id === selectedModel)?.name}</span>
+              <span className="text-gray-500 ml-2">- {availableModels.find(m => m.id === selectedModel)?.description}</span>
+            </p>
+          </div>
+        </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto pb-32">

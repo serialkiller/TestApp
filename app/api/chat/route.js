@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { messages, apiKey } = await request.json()
+    const { messages, apiKey, model = 'gpt-4o' } = await request.json()
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })
@@ -18,7 +18,7 @@ export async function POST(request) {
     })
 
     const completion = await openai.chat.completions.create({
-      model:'gpt-4.1-2025-04-14',
+      model: model,
       messages: messages,
       temperature: 0.7,
       max_tokens: 1000,
