@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { ConversationStorage } from './utils/storage'
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([])
@@ -13,9 +14,11 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState('gpt-4o')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
+  const [storageInstance, setStorageInstance] = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const [conversationTitle, setConversationTitle] = useState('')
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -69,8 +72,8 @@ export default function ChatPage() {
     }
   }
 
-  // Save conversation to localStorage
-  const saveConversation = (convId, msgs, title) => {
+  // Save conversation to storage
+  const saveConversation = async (convId, msgs, title) => {
     const conversation = {
       id: convId,
       title: title,
@@ -78,20 +81,32 @@ export default function ChatPage() {
       timestamp: Date.now()
     }
     
-    const existingConversations = JSON.parse(localStorage.getItem('chat-conversations') || '[]')
-    const updatedConversations = existingConversations.filter(c => c.id !== convId)
-    updatedConversations.unshift(conversation)
+    const existingConversations = conversations.filter(c => c.id !== convId)
+    const updatedConversations = [conversation, ...existingConversations]
     
     // Keep only last 50 conversations
     const limitedConversations = updatedConversations.slice(0, 50)
-    localStorage.setItem('chat-conversations', JSON.stringify(limitedConversations))
+    
+    if (storageInstance) {
+      await storageInstance.saveConversations(limitedConversations)
+    }
+    
     setConversations(limitedConversations)
   }
 
-  // Load conversations from localStorage
-  const loadConversations = () => {
-    const saved = JSON.parse(localStorage.getItem('chat-conversations') || '[]')
-    setConversations(saved)
+  // Load conversations from storage
+  const loadConversations = async () => {
+    if (storageInstance) {
+      setIsSyncing(true)
+      try {
+        const saved = await storageInstance.loadConversations()
+        setConversations(saved)
+      } catch (error) {
+        console.error('Error loading conversations:', error)
+      } finally {
+        setIsSyncing(false)
+      }
+    }
   }
 
   // Create new conversation
@@ -118,11 +133,14 @@ export default function ChatPage() {
         const newTitle = await generateAITitle(conversation.messages)
         if (newTitle && newTitle !== conversation.title) {
           const updatedConversation = { ...conversation, title: newTitle }
-          const existingConversations = JSON.parse(localStorage.getItem('chat-conversations') || '[]')
-          const updatedConversations = existingConversations.map(c => 
+          const updatedConversations = conversations.map(c => 
             c.id === conversation.id ? updatedConversation : c
           )
-          localStorage.setItem('chat-conversations', JSON.stringify(updatedConversations))
+          
+          if (storageInstance) {
+            await storageInstance.saveConversations(updatedConversations)
+          }
+          
           setConversations(updatedConversations)
         }
       } catch (error) {
@@ -132,9 +150,13 @@ export default function ChatPage() {
   }
 
   // Delete conversation
-  const deleteConversation = (convId) => {
+  const deleteConversation = async (convId) => {
     const updatedConversations = conversations.filter(c => c.id !== convId)
-    localStorage.setItem('chat-conversations', JSON.stringify(updatedConversations))
+    
+    if (storageInstance) {
+      await storageInstance.saveConversations(updatedConversations)
+    }
+    
     setConversations(updatedConversations)
     
     if (currentConversationId === convId) {
@@ -156,18 +178,28 @@ export default function ChatPage() {
     if (savedApiKey) {
       setApiKey(savedApiKey)
       setShowApiKeyInput(false)
+      // Initialize storage instance
+      setStorageInstance(new ConversationStorage(savedApiKey))
     }
     if (savedModel) {
       setSelectedModel(savedModel)
     }
-    loadConversations()
   }, [])
+
+  // Load conversations when storage instance is available
+  useEffect(() => {
+    if (storageInstance) {
+      loadConversations()
+    }
+  }, [storageInstance])
 
   const saveApiKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem('openai-api-key', apiKey.trim())
       localStorage.setItem('openai-model', selectedModel)
       setShowApiKeyInput(false)
+      // Initialize storage instance
+      setStorageInstance(new ConversationStorage(apiKey.trim()))
     }
   }
 
@@ -183,6 +215,8 @@ export default function ChatPage() {
     setSelectedModel('gpt-4o')
     setShowApiKeyInput(true)
     setMessages([])
+    setStorageInstance(null)
+    setConversations([])
   }
 
   const sendMessage = async () => {
@@ -341,7 +375,12 @@ export default function ChatPage() {
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Recent Conversations</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-300">Recent Conversations</h3>
+              {isSyncing && (
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+              )}
+            </div>
             {conversations.length === 0 ? (
               <p className="text-gray-500 text-sm">No conversations yet</p>
             ) : (

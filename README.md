@@ -12,7 +12,10 @@
   - ✨ Markdown support for formatted responses
   - 🎨 Syntax highlighting for code blocks
   - 🔄 Auto-resizing text input
-  - 💾 Clear chat history functionality
+  - 💾 Persistent conversation storage across devices
+  - 🏷️ AI-generated conversation titles
+  - 🤖 Model selection (GPT-4o, GPT-3.5-turbo, etc.)
+  - ☁️ Free cloud sync with Supabase
   
   ## Quick Deploy
   
@@ -38,6 +41,28 @@
   1. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
   2. Enter your API key when prompted in the app
   3. Start chatting!
+  
+  ## Storage Setup (Free with Supabase)
+  
+  This app uses Supabase (PostgreSQL) for persistent conversation storage across devices:
+  
+  1. **Create a free Supabase account** at [supabase.com](https://supabase.com)
+  2. **Create a new project** in your Supabase dashboard
+  3. **Run the SQL setup** in your Supabase SQL editor:
+     ```sql
+     -- Copy and paste the contents of supabase-setup.sql
+     ```
+  4. **Get your credentials** from Settings > API in your Supabase dashboard
+  5. **Add environment variables** to your Vercel project:
+     - `NEXT_PUBLIC_SUPABASE_URL` (your project URL)
+     - `SUPABASE_SERVICE_ROLE_KEY` (your service role key - **NOT the anon key!**)
+  6. **Deploy to Vercel** - the app will automatically use Supabase storage
+  
+  **Free Tier Benefits:**
+  - 500MB database storage
+  - 50,000 monthly active users
+  - 2GB bandwidth
+  - Perfect for personal chat apps!
   
   ## Environment Variables
   
