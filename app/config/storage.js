@@ -18,9 +18,16 @@ export const STORAGE_CONFIG = {
 
 // Helper function to check if cloud storage is available
 export const isCloudStorageAvailable = () => {
-  return STORAGE_CONFIG.mode === 'supabase' && 
+  const available = STORAGE_CONFIG.mode === 'supabase' && 
          STORAGE_CONFIG.supabase.url && 
          STORAGE_CONFIG.supabase.serviceKey
+  
+  console.log('Cloud storage available:', available)
+  console.log('Storage mode:', STORAGE_CONFIG.mode)
+  console.log('Supabase URL set:', !!STORAGE_CONFIG.supabase.url)
+  console.log('Supabase key set:', !!STORAGE_CONFIG.supabase.serviceKey)
+  
+  return available
 }
 
 // Helper function to get storage mode

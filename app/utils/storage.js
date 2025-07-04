@@ -55,6 +55,7 @@ export class ConversationStorage {
   // Save to cloud storage
   async saveToCloud(conversations) {
     try {
+      console.log('Attempting to save to cloud storage...')
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: {
@@ -66,15 +67,21 @@ export class ConversationStorage {
         }),
       })
 
+      console.log('Cloud storage response status:', response.status)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Cloud storage error response:', errorText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
       if (data.error) {
+        console.error('Cloud storage API error:', data.error)
         throw new Error(data.error)
       }
 
+      console.log('Successfully saved to cloud storage')
       return true
     } catch (error) {
       console.error('Error saving to cloud:', error)
@@ -85,17 +92,24 @@ export class ConversationStorage {
   // Load from cloud storage
   async loadFromCloud() {
     try {
+      console.log('Attempting to load from cloud storage...')
       const response = await fetch(`/api/conversations?apiKey=${encodeURIComponent(this.apiKey)}`)
       
+      console.log('Cloud load response status:', response.status)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Cloud load error response:', errorText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
       if (data.error) {
+        console.error('Cloud load API error:', data.error)
         throw new Error(data.error)
       }
 
+      console.log('Successfully loaded from cloud storage:', data.conversations?.length || 0, 'conversations')
       return data.conversations || []
     } catch (error) {
       console.error('Error loading from cloud:', error)
