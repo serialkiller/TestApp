@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// Initialize Supabase client
+// Initialize Supabase client (only if environment variables are available)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null
 
 // Helper function to generate user ID from API key (simple hash)
 const generateUserId = (apiKey) => {
@@ -25,6 +27,13 @@ export async function GET(request) {
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 400 })
+    }
+
+    // Check if Supabase is available
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Storage service not configured' 
+      }, { status: 503 })
     }
 
     const userId = generateUserId(apiKey)
@@ -65,6 +74,13 @@ export async function POST(request) {
 
     if (!conversations || !Array.isArray(conversations)) {
       return NextResponse.json({ error: 'Conversations array is required' }, { status: 400 })
+    }
+
+    // Check if Supabase is available
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Storage service not configured' 
+      }, { status: 503 })
     }
 
     const userId = generateUserId(apiKey)

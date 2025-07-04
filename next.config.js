@@ -1,10 +1,6 @@
-/** @type {import('next').NextConfig} 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  // Next.js 14 with App Router - no experimental flags needed
 }
 
 module.exports = nextConfig
-*/
-module.exports = {}
