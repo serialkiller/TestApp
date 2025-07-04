@@ -14,6 +14,7 @@ export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const [conversationTitle, setConversationTitle] = useState('')
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -21,6 +22,41 @@ export default function ChatPage() {
   const generateTitle = (firstMessage) => {
     if (!firstMessage) return 'New Conversation'
     return firstMessage.length > 30 ? firstMessage.substring(0, 30) + '...' : firstMessage
+  }
+
+  // Generate AI-powered title for conversation
+  const generateAITitle = async (messages) => {
+    setIsGeneratingTitle(true)
+    try {
+      const response = await fetch('/api/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messages,
+          apiKey: apiKey
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      return data.title
+    } catch (error) {
+      console.error('Error generating title:', error)
+      // Fallback to simple title generation
+      return generateTitle(messages[0]?.content)
+    } finally {
+      setIsGeneratingTitle(false)
+    }
   }
 
   // Save conversation to localStorage
@@ -63,6 +99,26 @@ export default function ChatPage() {
     setMessages(conversation.messages)
     setConversationTitle(conversation.title)
     setShowSidebar(false)
+  }
+
+  // Update conversation title with AI (for existing conversations)
+  const updateConversationTitle = async (conversation) => {
+    if (conversation.messages.length > 0) {
+      try {
+        const newTitle = await generateAITitle(conversation.messages)
+        if (newTitle && newTitle !== conversation.title) {
+          const updatedConversation = { ...conversation, title: newTitle }
+          const existingConversations = JSON.parse(localStorage.getItem('chat-conversations') || '[]')
+          const updatedConversations = existingConversations.map(c => 
+            c.id === conversation.id ? updatedConversation : c
+          )
+          localStorage.setItem('chat-conversations', JSON.stringify(updatedConversations))
+          setConversations(updatedConversations)
+        }
+      } catch (error) {
+        console.error('Error updating conversation title:', error)
+      }
+    }
   }
 
   // Delete conversation
@@ -149,8 +205,12 @@ export default function ChatPage() {
       setMessages(finalMessages)
 
       // Generate title from first user message and save conversation
-      const title = messages.length === 0 ? generateTitle(userMessage.content) : conversationTitle
-      setConversationTitle(title)
+      let title = conversationTitle
+      if (messages.length === 0) {
+        // This is the first message, generate AI title
+        title = await generateAITitle(finalMessages)
+        setConversationTitle(title)
+      }
       saveConversation(convId, finalMessages, title)
 
     } catch (error) {
@@ -163,7 +223,12 @@ export default function ChatPage() {
       setMessages(finalMessages)
       
       // Save even error conversations
-      const title = messages.length === 0 ? generateTitle(userMessage.content) : conversationTitle
+      let title = conversationTitle
+      if (messages.length === 0) {
+        // This is the first message, generate AI title
+        title = await generateAITitle(finalMessages)
+        setConversationTitle(title)
+      }
       saveConversation(convId, finalMessages, title)
     } finally {
       setIsLoading(false)
@@ -265,15 +330,27 @@ export default function ChatPage() {
                         {new Date(conv.timestamp).toLocaleDateString()}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteConversation(conv.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-400 p-1 transition-opacity"
-                    >
-                      ×
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          updateConversationTitle(conv)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-400 p-1 transition-opacity text-xs"
+                        title="Update title with AI"
+                      >
+                        ↻
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteConversation(conv.id)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-400 p-1 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -304,8 +381,11 @@ export default function ChatPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <h1 className="text-xl font-semibold truncate">
+              <h1 className="text-xl font-semibold truncate flex items-center gap-2">
                 {conversationTitle || 'Husains App'}
+                {isGeneratingTitle && (
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                )}
               </h1>
             </div>
             <div className="flex gap-2">
