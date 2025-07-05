@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ConversationStorage } from './utils/storage'
+import { formatComparisonPrompt, getTableSuggestion } from './utils/comparisonHelper'
+import { processTextContent } from './utils/textProcessor'
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([])
@@ -19,6 +21,7 @@ export default function ChatPage() {
   const [conversationTitle, setConversationTitle] = useState('')
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [tableSuggestion, setTableSuggestion] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -222,6 +225,10 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
+    // Check for table suggestion
+    const suggestion = getTableSuggestion(input.trim())
+    setTableSuggestion(suggestion)
+
     const userMessage = { role: 'user', content: input.trim() }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
@@ -236,13 +243,34 @@ export default function ChatPage() {
     }
 
     try {
+      // Add system message for comparison prompts to encourage table format
+      let messagesToSend = newMessages
+      if (getTableSuggestion(input.trim())) {
+        messagesToSend = [
+          { 
+            role: 'system', 
+            content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting.' 
+          },
+          ...newMessages
+        ]
+      } else {
+        // Add general system message to encourage markdown formatting
+        messagesToSend = [
+          { 
+            role: 'system', 
+            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags).' 
+          },
+          ...newMessages
+        ]
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: newMessages,
+          messages: messagesToSend,
           apiKey: apiKey,
           model: selectedModel
         }),
@@ -543,10 +571,33 @@ export default function ChatPage() {
                                     <code {...props}>{children}</code>
                                   </pre>
                                 )
+                              },
+                              table({node, children, ...props}) {
+                                return (
+                                  <div className="overflow-x-auto my-4">
+                                    <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
+                                      {children}
+                                    </table>
+                                  </div>
+                                )
+                              },
+                              th({node, children, ...props}) {
+                                return (
+                                  <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
+                                    {children}
+                                  </th>
+                                )
+                              },
+                              td({node, children, ...props}) {
+                                return (
+                                  <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
+                                    {children}
+                                  </td>
+                                )
                               }
                             }}
                           >
-                            {message.content}
+                            {processTextContent(message.content)}
                           </ReactMarkdown>
                         ) : (
                           <p className="whitespace-pre-wrap">{message.content}</p>
@@ -582,11 +633,22 @@ export default function ChatPage() {
         {/* Input */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
           <div className="input-container">
+            {tableSuggestion && (
+              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700">{tableSuggestion}</p>
+              </div>
+            )}
             <div className="relative">
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value)
+                  // Clear suggestion when user types
+                  if (tableSuggestion) {
+                    setTableSuggestion(null)
+                  }
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message here..."
                 className="chat-input pr-16"
