@@ -55,7 +55,7 @@ export const getTableSuggestion = (prompt) => {
   );
   
   if (isComparison) {
-    return "💡 Tip: I'll format this comparison in a table for better readability.";
+    return "💡 Tip: I'll format this comparison in a table for better readability. Visual comparisons may include relevant images.";
   }
   
   return null;

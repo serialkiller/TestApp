@@ -45,4 +45,14 @@
   .prose table tbody tr:hover {
     @apply bg-blue-50;
   }
+  
+  /* Image styles for chat */
+  .prose img {
+    @apply max-w-full h-auto;
+  }
+  
+  /* Ensure images don't overflow in chat bubbles */
+  .assistant-message img {
+    @apply max-w-full h-auto rounded-lg shadow-md;
+  }
 }

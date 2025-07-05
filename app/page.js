@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import { ConversationStorage } from './utils/storage'
 import { formatComparisonPrompt, getTableSuggestion } from './utils/comparisonHelper'
 import { processTextContent } from './utils/textProcessor'
+import { getImageSuggestion } from './utils/imageHelper'
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([])
@@ -22,6 +23,7 @@ export default function ChatPage() {
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [tableSuggestion, setTableSuggestion] = useState(null)
+  const [imageSuggestion, setImageSuggestion] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -225,9 +227,7 @@ export default function ChatPage() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
-    // Check for table suggestion
-    const suggestion = getTableSuggestion(input.trim())
-    setTableSuggestion(suggestion)
+
 
     const userMessage = { role: 'user', content: input.trim() }
     const newMessages = [...messages, userMessage]
@@ -249,7 +249,7 @@ export default function ChatPage() {
         messagesToSend = [
           { 
             role: 'system', 
-            content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting.' 
+            content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting. When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url).' 
           },
           ...newMessages
         ]
@@ -258,7 +258,7 @@ export default function ChatPage() {
         messagesToSend = [
           { 
             role: 'system', 
-            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags).' 
+            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags). When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url).' 
           },
           ...newMessages
         ]
@@ -594,6 +594,33 @@ export default function ChatPage() {
                                     {children}
                                   </td>
                                 )
+                              },
+                              img({node, src, alt, ...props}) {
+                                return (
+                                  <div className="my-4">
+                                    <img 
+                                      src={src} 
+                                      alt={alt || 'Image'} 
+                                      className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'block';
+                                      }}
+                                      {...props}
+                                    />
+                                    <div 
+                                      className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
+                                      style={{display: 'none'}}
+                                    >
+                                      <p>Image could not be loaded</p>
+                                      <p className="text-xs mt-1">{src}</p>
+                                    </div>
+                                    {alt && (
+                                      <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>
+                                    )}
+                                  </div>
+                                )
                               }
                             }}
                           >
@@ -633,22 +660,12 @@ export default function ChatPage() {
         {/* Input */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
           <div className="input-container">
-            {tableSuggestion && (
-              <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-700">{tableSuggestion}</p>
-              </div>
-            )}
+
             <div className="relative">
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => {
-                  setInput(e.target.value)
-                  // Clear suggestion when user types
-                  if (tableSuggestion) {
-                    setTableSuggestion(null)
-                  }
-                }}
+                onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message here..."
                 className="chat-input pr-16"
