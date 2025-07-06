@@ -16,7 +16,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [showApiKeyInput, setShowApiKeyInput] = useState(true)
-  const [selectedModel, setSelectedModel] = useState('gpt-4o')
+  const [selectedModel, setSelectedModel] = useState('gpt-4.1')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [storageInstance, setStorageInstance] = useState(null)
@@ -32,10 +32,16 @@ export default function ChatPage() {
 
   // Available OpenAI models
   const availableModels = [
-    { id: 'gpt-4o', name: 'GPT-4o', description: 'Latest and most capable model' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and efficient' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Previous generation' },
+    { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest and most capable GPT-4.1 model' },
+    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast and efficient GPT-4.1' },
+    { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: 'Lightweight GPT-4.1 model' },
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Previous generation GPT-4o model' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and efficient GPT-4o' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'GPT-4 Turbo model' },
+    { id: 'gpt-4', name: 'GPT-4', description: 'Base GPT-4 model' },
     { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and cost-effective' },
+    { id: 'gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16K', description: 'GPT-3.5 Turbo with 16K context' },
+    { id: 'gpt-3.5-turbo-instruct', name: 'GPT-3.5 Turbo Instruct', description: 'Instruction-tuned GPT-3.5' },
   ]
 
   // Generate conversation title from first message
@@ -220,7 +226,7 @@ export default function ChatPage() {
     localStorage.removeItem('openai-api-key')
     localStorage.removeItem('openai-model')
     setApiKey('')
-    setSelectedModel('gpt-4o')
+    setSelectedModel('gpt-4.1')
     setShowApiKeyInput(true)
     setMessages([])
     setStorageInstance(null)
