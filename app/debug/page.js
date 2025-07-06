@@ -166,7 +166,7 @@ export default function DebugPage() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="w-full p-2 border rounded"
-              placeholder="Enter your OpenAI API key"
+              placeholder="Enter your API key"
             />
           </div>
           

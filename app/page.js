@@ -30,7 +30,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
-  // Available OpenAI models
+  // Available models for selection
   const availableModels = [
     { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest and most capable GPT-4.1 model' },
     { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast and efficient GPT-4.1' },
@@ -43,6 +43,9 @@ export default function ChatPage() {
     { id: 'gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16K', description: 'GPT-3.5 Turbo with 16K context' },
     { id: 'gpt-3.5-turbo-instruct', name: 'GPT-3.5 Turbo Instruct', description: 'Instruction-tuned GPT-3.5' },
   ]
+
+  // Default model for API calls
+  const defaultModel = 'gpt-4.1'
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {
@@ -187,17 +190,16 @@ export default function ChatPage() {
   }, [messages])
 
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai-api-key')
-    const savedModel = localStorage.getItem('openai-model')
+    const savedApiKey = localStorage.getItem('api-key')
+    const savedModel = localStorage.getItem('api-model')
     if (savedApiKey) {
       setApiKey(savedApiKey)
       setShowApiKeyInput(false)
       // Initialize storage instance
       setStorageInstance(new ConversationStorage(savedApiKey))
     }
-    if (savedModel) {
-      setSelectedModel(savedModel)
-    }
+    // Set saved model or default
+    setSelectedModel(savedModel || defaultModel)
   }, [])
 
   // Load conversations when storage instance is available
@@ -209,8 +211,7 @@ export default function ChatPage() {
 
   const saveApiKey = () => {
     if (apiKey.trim()) {
-      localStorage.setItem('openai-api-key', apiKey.trim())
-      localStorage.setItem('openai-model', selectedModel)
+      localStorage.setItem('api-key', apiKey.trim())
       setShowApiKeyInput(false)
       // Initialize storage instance
       setStorageInstance(new ConversationStorage(apiKey.trim()))
@@ -218,15 +219,15 @@ export default function ChatPage() {
   }
 
   const saveModel = (model) => {
-    localStorage.setItem('openai-model', model)
     setSelectedModel(model)
+    localStorage.setItem('api-model', model)
   }
 
   const clearApiKey = () => {
-    localStorage.removeItem('openai-api-key')
-    localStorage.removeItem('openai-model')
+    localStorage.removeItem('api-key')
+    localStorage.removeItem('api-model')
     setApiKey('')
-    setSelectedModel('gpt-4.1')
+    setSelectedModel(defaultModel)
     setShowApiKeyInput(true)
     setMessages([])
     setStorageInstance(null)
@@ -379,7 +380,7 @@ export default function ChatPage() {
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
           <h1 className="text-2xl font-bold text-center mb-6">Husains App</h1>
           <p className="text-gray-600 mb-4 text-sm">
-            Enter your OpenAI API key to get started. Your key will be stored locally in your browser.
+            Enter your API key to get started. Your key will be stored locally in your browser.
           </p>
           <div className="space-y-4">
             <input
@@ -390,30 +391,16 @@ export default function ChatPage() {
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onKeyPress={(e) => e.key === 'Enter' && saveApiKey()}
             />
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              {availableModels.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name} - {model.description}
-                </option>
-              ))}
-            </select>
             <button
               onClick={saveApiKey}
               disabled={!apiKey.trim()}
               className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Save API Key & Model
+              Save API Key
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-4">
-            Get your API key from{' '}
-            <a >
-              
-            </a>
+            Get your API key from your AI service provider.
           </p>
         </div>
       </div>

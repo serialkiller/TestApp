@@ -1,7 +1,7 @@
 
   // .env.local (example file - create this locally)
-  # Add your OpenAI API key here if you want to use server-side storage
-  # OPENAI_API_KEY=your-api-key-here
+  # Add your API key here if you want to use server-side storage
+  # API_KEY=your-api-key-here
   
   // .gitignore
   # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.

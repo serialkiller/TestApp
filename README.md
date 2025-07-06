@@ -1,7 +1,7 @@
 // README.md
-  # ChatGPT Client
+  # AI Chat Client
   
-  A modern ChatGPT-like client built with Next.js that connects to the OpenAI API. Deploy instantly on Vercel!
+  A modern AI chat client built with Next.js that connects to various AI APIs. Deploy instantly on Vercel!
   
   ## Features
   
@@ -14,7 +14,7 @@
   - 🔄 Auto-resizing text input
   - 💾 Persistent conversation storage across devices
   - 🏷️ AI-generated conversation titles
-  - 🤖 Model selection (GPT-4o, GPT-3.5-turbo, etc.)
+  - 🤖 Model selection for different AI providers
   - ☁️ Free cloud sync with Supabase
   
   ## Quick Deploy
@@ -38,7 +38,7 @@
   
   ## Setup
   
-  1. Get your OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+  1. Get your API key from your preferred AI service provider
   2. Enter your API key when prompted in the app
   3. Start chatting!
   
@@ -69,14 +69,14 @@
   For server-side API key storage (optional), create a `.env.local` file:
   
   ```
-  OPENAI_API_KEY=your-api-key-here
+  API_KEY=your-api-key-here
   ```
   
   ## Tech Stack
   
   - **Next.js 14** - React framework with App Router
   - **Tailwind CSS** - Utility-first CSS framework
-  - **OpenAI API** - GPT-3.5-turbo integration
+  - **AI APIs** - Integration with various AI service providers
   - **React Markdown** - Markdown rendering with syntax highlighting
   
   ## License
