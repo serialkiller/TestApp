@@ -7,6 +7,8 @@ import { ConversationStorage } from './utils/storage'
 import { formatComparisonPrompt, getTableSuggestion } from './utils/comparisonHelper'
 import { processTextContent } from './utils/textProcessor'
 import { getImageSuggestion } from './utils/imageHelper'
+import { detectFiles, uploadFiles, replaceFilesWithPlaceholders } from './utils/fileProcessor'
+import FileDisplay from './components/FileDisplay'
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([])
@@ -24,6 +26,7 @@ export default function ChatPage() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [tableSuggestion, setTableSuggestion] = useState(null)
   const [imageSuggestion, setImageSuggestion] = useState(null)
+  const [messageFiles, setMessageFiles] = useState({}) // Store files for each message
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -249,7 +252,7 @@ export default function ChatPage() {
         messagesToSend = [
           { 
             role: 'system', 
-            content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting. When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url).' 
+            content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting. When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url). When asked to create or generate files, ALWAYS provide the actual file content in this exact format: ```filename.ext\nactual code content here\n```. IMPORTANT: Use the filename as the language identifier, not the programming language. For example, use ```data_analysis.py\ncode here\n``` NOT ```python\ncode here\n```.' 
           },
           ...newMessages
         ]
@@ -258,7 +261,7 @@ export default function ChatPage() {
         messagesToSend = [
           { 
             role: 'system', 
-            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags). When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url).' 
+            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags). When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url). When asked to create or generate files, ALWAYS provide the actual file content in this exact format: ```filename.ext\nactual code content here\n```. IMPORTANT: Use the filename as the language identifier, not the programming language. For example, use ```data_analysis.py\ncode here\n``` NOT ```python\ncode here\n```.' 
           },
           ...newMessages
         ]
@@ -286,7 +289,32 @@ export default function ChatPage() {
         throw new Error(data.error)
       }
 
-      const finalMessages = [...newMessages, { role: 'assistant', content: data.message }]
+      // Process files in the response
+      const detectedFiles = detectFiles(data.message)
+      let processedContent = data.message
+      let uploadedFiles = []
+
+      if (detectedFiles.length > 0) {
+        // Upload files to storage
+        uploadedFiles = await uploadFiles(detectedFiles)
+        
+        if (uploadedFiles.length > 0) {
+          // For files, we'll handle the display separately to avoid DOM nesting issues
+          // Just store the original message and files, don't process markdown
+          processedContent = data.message
+        }
+      }
+
+      const finalMessages = [...newMessages, { role: 'assistant', content: processedContent }]
+      
+      // Store files for this message (after finalMessages is defined)
+      if (uploadedFiles.length > 0) {
+        setMessageFiles(prev => ({
+          ...prev,
+          [finalMessages.length - 1]: uploadedFiles // Use the correct index
+        }))
+      }
+      
       setMessages(finalMessages)
 
       // Generate title from first user message and save conversation
@@ -557,75 +585,169 @@ export default function ChatPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         {message.role === 'assistant' ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            className="prose prose-sm max-w-none"
-                            components={{
-                              code({node, inline, className, children, ...props}) {
-                                return inline ? (
-                                  <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props}>
-                                    {children}
-                                  </code>
-                                ) : (
-                                  <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
-                                    <code {...props}>{children}</code>
-                                  </pre>
-                                )
-                              },
-                              table({node, children, ...props}) {
-                                return (
-                                  <div className="overflow-x-auto my-4">
-                                    <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
-                                      {children}
-                                    </table>
-                                  </div>
-                                )
-                              },
-                              th({node, children, ...props}) {
-                                return (
-                                  <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
-                                    {children}
-                                  </th>
-                                )
-                              },
-                              td({node, children, ...props}) {
-                                return (
-                                  <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
-                                    {children}
-                                  </td>
-                                )
-                              },
-                              img({node, src, alt, ...props}) {
-                                return (
-                                  <div className="my-4">
-                                    <img 
-                                      src={src} 
-                                      alt={alt || 'Image'} 
-                                      className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
-                                      loading="lazy"
-                                      onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'block';
-                                      }}
-                                      {...props}
-                                    />
-                                    <div 
-                                      className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
-                                      style={{display: 'none'}}
-                                    >
-                                      <p>Image could not be loaded</p>
-                                      <p className="text-xs mt-1">{src}</p>
-                                    </div>
-                                    {alt && (
-                                      <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>
-                                    )}
-                                  </div>
-                                )
-                              }
-                            }}
-                          >
-                            {processTextContent(message.content)}
-                          </ReactMarkdown>
+                          (() => {
+                            const files = messageFiles[index] || [];
+                            
+                            if (files.length > 0) {
+                              // Render files separately to avoid DOM nesting issues
+                              return (
+                                <div className="space-y-4">
+                                  {/* Render any text content before files */}
+                                  {(() => {
+                                    const textContent = message.content.replace(/```[\s\S]*?```/g, '').trim();
+                                    if (textContent) {
+                                      return (
+                                        <ReactMarkdown
+                                          remarkPlugins={[remarkGfm]}
+                                          className="prose prose-sm max-w-none"
+                                          components={{
+                                            code({node, inline, className, children, ...props}) {
+                                              return inline ? (
+                                                <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props}>
+                                                  {children}
+                                                </code>
+                                              ) : null // Don't render code blocks in text content
+                                            },
+                                            table({node, children, ...props}) {
+                                              return (
+                                                <div className="overflow-x-auto my-4">
+                                                  <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
+                                                    {children}
+                                                  </table>
+                                                </div>
+                                              )
+                                            },
+                                            th({node, children, ...props}) {
+                                              return (
+                                                <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
+                                                  {children}
+                                                </th>
+                                              )
+                                            },
+                                            td({node, children, ...props}) {
+                                              return (
+                                                <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
+                                                  {children}
+                                                </td>
+                                              )
+                                            },
+                                            img({node, src, alt, ...props}) {
+                                              return (
+                                                <div className="my-4">
+                                                  <img 
+                                                    src={src} 
+                                                    alt={alt || 'Image'} 
+                                                    className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+                                                    loading="lazy"
+                                                    onError={(e) => {
+                                                      e.target.style.display = 'none';
+                                                      e.target.nextSibling.style.display = 'block';
+                                                    }}
+                                                    {...props}
+                                                  />
+                                                  <div 
+                                                    className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
+                                                    style={{display: 'none'}}
+                                                  >
+                                                    <p>Image could not be loaded</p>
+                                                    <p className="text-xs mt-1">{src}</p>
+                                                  </div>
+                                                  {alt && (
+                                                    <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>
+                                                  )}
+                                                </div>
+                                              )
+                                            }
+                                          }}
+                                        >
+                                          {processTextContent(textContent)}
+                                        </ReactMarkdown>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                  
+                                  {/* Render files */}
+                                  {files.map((fileInfo, fileIndex) => (
+                                    <FileDisplay key={`file-${fileIndex}`} fileInfo={fileInfo} />
+                                  ))}
+                                </div>
+                              );
+                            } else {
+                              // Regular markdown rendering for messages without files
+                              return (
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  className="prose prose-sm max-w-none"
+                                  components={{
+                                    code({node, inline, className, children, ...props}) {
+                                      return inline ? (
+                                        <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props}>
+                                          {children}
+                                        </code>
+                                      ) : (
+                                        <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
+                                          <code {...props}>{children}</code>
+                                        </pre>
+                                      )
+                                    },
+                                    table({node, children, ...props}) {
+                                      return (
+                                        <div className="overflow-x-auto my-4">
+                                          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
+                                            {children}
+                                          </table>
+                                        </div>
+                                      )
+                                    },
+                                    th({node, children, ...props}) {
+                                      return (
+                                        <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
+                                          {children}
+                                        </th>
+                                      )
+                                    },
+                                    td({node, children, ...props}) {
+                                      return (
+                                        <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
+                                          {children}
+                                        </td>
+                                      )
+                                    },
+                                    img({node, src, alt, ...props}) {
+                                      return (
+                                        <div className="my-4">
+                                          <img 
+                                            src={src} 
+                                            alt={alt || 'Image'} 
+                                            className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+                                            loading="lazy"
+                                            onError={(e) => {
+                                              e.target.style.display = 'none';
+                                              e.target.nextSibling.style.display = 'block';
+                                            }}
+                                            {...props}
+                                          />
+                                          <div 
+                                            className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
+                                            style={{display: 'none'}}
+                                          >
+                                            <p>Image could not be loaded</p>
+                                            <p className="text-xs mt-1">{src}</p>
+                                          </div>
+                                          {alt && (
+                                            <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>
+                                          )}
+                                        </div>
+                                      )
+                                    }
+                                  }}
+                                >
+                                  {processTextContent(message.content)}
+                                </ReactMarkdown>
+                              );
+                            }
+                          })()
                         ) : (
                           <p className="whitespace-pre-wrap">{message.content}</p>
                         )}
