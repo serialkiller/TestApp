@@ -14,8 +14,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [apiKey, setApiKey] = useState('')
-  const [showApiKeyInput, setShowApiKeyInput] = useState(true)
+  const [password, setPassword] = useState('')
+  const [showPasswordInput, setShowPasswordInput] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedModel, setSelectedModel] = useState('gpt-4.1')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
@@ -63,7 +64,6 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: messages,
-          apiKey: apiKey,
           model: selectedModel
         }),
       })
@@ -189,13 +189,14 @@ export default function ChatPage() {
   }, [messages])
 
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('api-key')
     const savedModel = localStorage.getItem('api-model')
-    if (savedApiKey) {
-      setApiKey(savedApiKey)
-      setShowApiKeyInput(false)
-      // Initialize storage instance
-      setStorageInstance(new ConversationStorage(savedApiKey))
+    const isAuth = localStorage.getItem('is-authenticated')
+    
+    if (isAuth === 'true') {
+      setIsAuthenticated(true)
+      setShowPasswordInput(false)
+      // Initialize storage instance with a placeholder API key (will be fetched from config)
+      setStorageInstance(new ConversationStorage('placeholder'))
     }
     // Set saved model or default
     setSelectedModel(savedModel || defaultModel)
@@ -208,12 +209,37 @@ export default function ChatPage() {
     }
   }, [storageInstance])
 
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('api-key', apiKey.trim())
-      setShowApiKeyInput(false)
-      // Initialize storage instance
-      setStorageInstance(new ConversationStorage(apiKey.trim()))
+  const authenticatePassword = async () => {
+    if (password.trim()) {
+      try {
+        const response = await fetch('/api/authenticate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            password: password.trim()
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            localStorage.setItem('is-authenticated', 'true')
+            setIsAuthenticated(true)
+            setShowPasswordInput(false)
+            // Initialize storage instance
+            setStorageInstance(new ConversationStorage('placeholder'))
+          } else {
+            alert('Invalid password')
+          }
+        } else {
+          alert('Authentication failed')
+        }
+      } catch (error) {
+        console.error('Authentication error:', error)
+        alert('Authentication failed')
+      }
     }
   }
 
@@ -222,15 +248,20 @@ export default function ChatPage() {
     localStorage.setItem('api-model', model)
   }
 
-  const clearApiKey = () => {
-    localStorage.removeItem('api-key')
+  const logout = () => {
+    localStorage.removeItem('is-authenticated')
     localStorage.removeItem('api-model')
-    setApiKey('')
+    setPassword('')
     setSelectedModel(defaultModel)
-    setShowApiKeyInput(true)
+    setShowPasswordInput(true)
+    setIsAuthenticated(false)
     setMessages([])
     setStorageInstance(null)
     setConversations([])
+  }
+
+  const goToConfig = () => {
+    window.location.href = '/config'
   }
 
   const sendMessage = async () => {
@@ -280,7 +311,6 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: messagesToSend,
-          apiKey: apiKey,
           model: selectedModel
         }),
       })
@@ -355,33 +385,33 @@ export default function ChatPage() {
   }
 
 
-  if (showApiKeyInput) {
+  if (showPasswordInput) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
           <h1 className="text-2xl font-bold text-center mb-6">Husains App</h1>
           <p className="text-gray-600 mb-4 text-sm">
-            Enter your API key to get started. Your key will be stored locally in your browser.
+            Enter your password to access the application.
           </p>
           <div className="space-y-4">
             <input
               type="password"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onKeyPress={(e) => e.key === 'Enter' && saveApiKey()}
+              onKeyPress={(e) => e.key === 'Enter' && authenticatePassword()}
             />
             <button
-              onClick={saveApiKey}
-              disabled={!apiKey.trim()}
+              onClick={authenticatePassword}
+              disabled={!password.trim()}
               className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Save API Key
+              Login
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-4">
-            Get your API key from your AI service provider.
+            Contact your administrator for access credentials.
           </p>
         </div>
       </div>
@@ -404,17 +434,18 @@ export default function ChatPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:ml-0">
-        <Header
-          conversationTitle={conversationTitle}
-          isGeneratingTitle={isGeneratingTitle}
-          selectedModel={selectedModel}
-          availableModels={availableModels}
-          showSidebar={showSidebar}
-          onToggleSidebar={() => setShowSidebar(!showSidebar)}
-          onModelChange={saveModel}
-          onNewChat={createNewConversation}
-          onClearApiKey={clearApiKey}
-        />
+                 <Header
+           conversationTitle={conversationTitle}
+           isGeneratingTitle={isGeneratingTitle}
+           selectedModel={selectedModel}
+           availableModels={availableModels}
+           showSidebar={showSidebar}
+           onToggleSidebar={() => setShowSidebar(!showSidebar)}
+           onModelChange={saveModel}
+           onNewChat={createNewConversation}
+           onLogout={logout}
+           onConfig={goToConfig}
+         />
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto pb-32">

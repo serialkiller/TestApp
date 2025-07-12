@@ -115,8 +115,11 @@ function getMarkdownComponents() {
             className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
             loading="lazy"
             onError={(e) => {
-              e.target.style.display = 'none'
-              e.target.nextSibling.style.display = 'block'
+              e.target.style.display = 'none';
+              const errorDiv = e.target.nextSibling;
+              if (errorDiv) {
+                errorDiv.style.display = 'block';
+              }
             }}
             {...props}
           />
@@ -125,7 +128,13 @@ function getMarkdownComponents() {
             style={{display: 'none'}}
           >
             <p>Image could not be loaded</p>
-            <p className="text-xs mt-1">{src}</p>
+            <p className="text-xs mt-1 break-all">{src}</p>
+            <button 
+              onClick={() => window.open(src, '_blank')}
+              className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+            >
+              Open in new tab
+            </button>
           </div>
           {alt && (
             <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>

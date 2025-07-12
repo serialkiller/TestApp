@@ -9,7 +9,8 @@ export default function Header({
   onToggleSidebar,
   onModelChange,
   onNewChat,
-  onClearApiKey
+  onLogout,
+  onConfig
 }) {
   return (
     <>
@@ -45,10 +46,16 @@ export default function Header({
               New Chat
             </button>
             <button
-              onClick={onClearApiKey}
+              onClick={onConfig}
+              className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded-md transition-colors"
+            >
+              Config
+            </button>
+            <button
+              onClick={onLogout}
               className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-md transition-colors"
             >
-              Change API Key
+              Logout
             </button>
           </div>
         </div>
