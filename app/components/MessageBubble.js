@@ -1,0 +1,137 @@
+'use client'
+
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { processTextContent } from '../utils/textProcessor'
+import FileDisplay from './FileDisplay'
+
+export default function MessageBubble({ message, index, messageFiles = {} }) {
+  const isUser = message.role === 'user'
+  
+  return (
+    <div className={`message-bubble ${isUser ? 'bg-white' : 'bg-gray-50'}`}>
+      <div className={isUser ? 'user-message' : 'assistant-message'}>
+        <div className="flex items-start gap-3">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+            isUser ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
+          }`}>
+            {isUser ? 'U' : 'AI'}
+          </div>
+          <div className="flex-1 min-w-0">
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <AssistantMessage message={message} messageFiles={messageFiles} index={index} />
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AssistantMessage({ message, messageFiles, index }) {
+  const files = messageFiles[index] || []
+  
+  if (files.length > 0) {
+    return (
+      <div className="space-y-4">
+        {(() => {
+          const textContent = message.content.replace(/```[\s\S]*?```/g, '').trim()
+          if (textContent) {
+            return (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                className="prose prose-sm max-w-none"
+                components={getMarkdownComponents()}
+              >
+                {processTextContent(textContent)}
+              </ReactMarkdown>
+            )
+          }
+          return null
+        })()}
+        
+        {files.map((fileInfo, fileIndex) => (
+          <FileDisplay key={`file-${fileIndex}`} fileInfo={fileInfo} />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      className="prose prose-sm max-w-none"
+      components={getMarkdownComponents()}
+    >
+      {processTextContent(message.content)}
+    </ReactMarkdown>
+  )
+}
+
+function getMarkdownComponents() {
+  return {
+    code({node, inline, className, children, ...props}) {
+      return inline ? (
+        <code className="bg-gray-200 px-1 py-0.5 rounded text-sm" {...props}>
+          {children}
+        </code>
+      ) : (
+        <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
+          <code {...props}>{children}</code>
+        </pre>
+      )
+    },
+    table({node, children, ...props}) {
+      return (
+        <div className="overflow-x-auto my-4">
+          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
+            {children}
+          </table>
+        </div>
+      )
+    },
+    th({node, children, ...props}) {
+      return (
+        <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
+          {children}
+        </th>
+      )
+    },
+    td({node, children, ...props}) {
+      return (
+        <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
+          {children}
+        </td>
+      )
+    },
+    img({node, src, alt, ...props}) {
+      return (
+        <div className="my-4">
+          <img 
+            src={src} 
+            alt={alt || 'Image'} 
+            className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+            loading="lazy"
+            onError={(e) => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'block'
+            }}
+            {...props}
+          />
+          <div 
+            className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
+            style={{display: 'none'}}
+          >
+            <p>Image could not be loaded</p>
+            <p className="text-xs mt-1">{src}</p>
+          </div>
+          {alt && (
+            <p className="text-xs text-gray-500 mt-2 text-center italic">{alt}</p>
+          )}
+        </div>
+      )
+    }
+  }
+}
