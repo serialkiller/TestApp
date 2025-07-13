@@ -3,7 +3,9 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { processTextContent } from '../utils/textProcessor'
+import { isMultiFileResponse } from '../utils/fileProcessor'
 import FileDisplay from './FileDisplay'
+import MultiFileDownload from './MultiFileDownload'
 
 export default function MessageBubble({ message, index, messageFiles = {} }) {
   const isUser = message.role === 'user'
@@ -32,10 +34,19 @@ export default function MessageBubble({ message, index, messageFiles = {} }) {
 
 function AssistantMessage({ message, messageFiles, index }) {
   const files = messageFiles[index] || []
+  const isMultiFile = isMultiFileResponse(message.content)
   
   if (files.length > 0) {
     return (
       <div className="space-y-4">
+        {/* Show multi-file download option at the top if applicable */}
+        {isMultiFile && (
+          <MultiFileDownload 
+            files={files} 
+            messageContent={message.content}
+          />
+        )}
+        
         {(() => {
           const textContent = message.content.replace(/```[\s\S]*?```/g, '').trim()
           if (textContent) {

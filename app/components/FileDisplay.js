@@ -94,6 +94,58 @@ export default function FileDisplay({ fileInfo }) {
     return icons[extension] || icons.default
   }
 
+  // Special handling for PDF files
+  if (fileInfo?.isPdf || fileInfo?.fileName?.toLowerCase().endsWith('.pdf')) {
+    return (
+      <div className="my-4 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        {/* PDF Header */}
+        <div className="bg-red-50 px-4 py-2 border-b border-red-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📄</span>
+            <span className="font-mono text-sm text-red-700">{fileInfo.fileName}</span>
+            <span className="text-xs text-red-500 bg-red-200 px-2 py-1 rounded">
+              PDF Document
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadFile}
+              className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
+              title="Download PDF"
+            >
+              📥 Download PDF
+            </button>
+            <button
+              onClick={() => window.open(fileInfo.fileUrl, '_blank')}
+              className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded transition-colors"
+              title="View PDF"
+            >
+              👁️ View
+            </button>
+          </div>
+        </div>
+        
+        {/* PDF Info */}
+        <div className="bg-red-50 p-4 text-center">
+          <div className="text-red-700">
+            <p className="font-medium">📋 PDF Report Generated</p>
+            <p className="text-sm text-red-600 mt-1">
+              This file has been converted to a proper PDF format with formatted text, headings, and page numbers.
+            </p>
+          </div>
+        </div>
+        
+        {/* File Info */}
+        <div className="bg-gray-50 px-4 py-2 border-t border-gray-200 text-xs text-gray-500">
+          <div className="flex items-center justify-between">
+            <span>Size: {fileInfo.size} bytes</span>
+            <span>Generated: {new Date(fileInfo.uploadedAt).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="my-4 border border-gray-200 rounded-lg overflow-hidden">

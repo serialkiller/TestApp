@@ -10,18 +10,19 @@ export const detectFiles = (text) => {
 
   const files = [];
   
-  // Pattern 1: ```filename.ext ... ```
-  const codeBlockPattern = /```(\w+\.\w+)\n([\s\S]*?)```/g;
+  // Pattern 1: ```filename.ext ... ``` (including PowerPoint and PDF files)
+  const codeBlockPattern = /```([\w.-]+\.(js|jsx|ts|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift|html|css|json|md|sql|txt|xml|yaml|yml|pptx|pdf|docx|xlsx|csv))\n([\s\S]*?)```/gi;
   let match;
   
   while ((match = codeBlockPattern.exec(text)) !== null) {
     const fileName = match[1];
-    const content = match[2].trim();
+    const content = match[3].trim();
     
     files.push({
       fileName,
       content,
-      type: 'code-block'
+      type: 'code-block',
+      fileType: getFileType(fileName)
     });
   }
   
@@ -119,29 +120,82 @@ export const uploadFiles = async (files) => {
 
   for (const file of files) {
     try {
-      const response = await fetch('/api/upload-file', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName: file.fileName,
-          content: file.content
-        }),
-      });
+      // Check if this is a PDF file that needs special processing
+      if (file.fileName.toLowerCase().endsWith('.pdf')) {
+        const response = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: file.fileName,
+            content: file.content,
+            title: extractTitleFromContent(file.content)
+          }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        uploadedFiles.push(data.fileInfo);
+        if (response.ok) {
+          const data = await response.json();
+          uploadedFiles.push({
+            fileName: data.fileName,
+            fileUrl: data.downloadUrl,
+            uploadedAt: new Date().toISOString(),
+            size: data.size || 0,
+            fileType: 'application/pdf',
+            isPdf: true
+          });
+        } else {
+          console.error(`Failed to generate PDF ${file.fileName}:`, await response.text());
+        }
       } else {
-        console.error(`Failed to upload ${file.fileName}:`, await response.text());
+        // Regular file upload
+        const response = await fetch('/api/upload-file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: file.fileName,
+            content: file.content
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          uploadedFiles.push(data.fileInfo);
+        } else {
+          console.error(`Failed to upload ${file.fileName}:`, await response.text());
+        }
       }
     } catch (error) {
-      console.error(`Error uploading ${file.fileName}:`, error);
+      console.error(`Error processing ${file.fileName}:`, error);
     }
   }
 
   return uploadedFiles;
+};
+
+/**
+ * Extracts title from markdown content
+ * @param {string} content - The file content
+ * @returns {string} - Extracted title or default
+ */
+const extractTitleFromContent = (content) => {
+  if (!content) return 'Generated Report';
+  
+  // Look for the first # heading
+  const titleMatch = content.match(/^#\s+(.+)$/m);
+  if (titleMatch) {
+    return titleMatch[1].trim();
+  }
+  
+  // Look for any heading
+  const anyHeadingMatch = content.match(/^#+\s+(.+)$/m);
+  if (anyHeadingMatch) {
+    return anyHeadingMatch[1].trim();
+  }
+  
+  return 'Generated Report';
 };
 
 /**
@@ -160,13 +214,52 @@ export const replaceFilesWithPlaceholders = (text, files) => {
  * @param {string} text - The AI response text
  * @returns {boolean} - True if response might contain files
  */
+/**
+ * Determines the file type based on extension
+ * @param {string} fileName - The file name
+ * @returns {string} - The file type category
+ */
+export const getFileType = (fileName) => {
+  const extension = fileName.split('.').pop().toLowerCase();
+  
+  const fileTypes = {
+    // Code files
+    'js': 'javascript', 'jsx': 'javascript', 'ts': 'typescript', 'tsx': 'typescript',
+    'py': 'python', 'java': 'java', 'cpp': 'cpp', 'c': 'c', 'cs': 'csharp',
+    'php': 'php', 'rb': 'ruby', 'go': 'go', 'rs': 'rust', 'swift': 'swift',
+    
+    // Web files
+    'html': 'html', 'css': 'css', 'xml': 'xml',
+    
+    // Data files
+    'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'csv': 'csv',
+    
+    // Documentation
+    'md': 'markdown', 'txt': 'text',
+    
+    // Database
+    'sql': 'sql',
+    
+    // Office documents
+    'pptx': 'powerpoint', 'pdf': 'pdf', 'docx': 'word', 'xlsx': 'excel'
+  };
+  
+  return fileTypes[extension] || 'text';
+};
+
+/**
+ * Checks if a response might contain file generation
+ * @param {string} text - The AI response text
+ * @returns {boolean} - True if response might contain files
+ */
 export const mightContainFiles = (text) => {
   if (!text || typeof text !== 'string') return false;
 
   const fileKeywords = [
     'file', 'script', 'code', 'program', 'module', 'class',
     'function', 'component', 'service', 'utility', 'helper',
-    'generated', 'created', 'here\'s', 'attached'
+    'generated', 'created', 'here\'s', 'attached', 'powerpoint',
+    'presentation', 'report', 'pdf', 'document', 'spreadsheet'
   ];
 
   const hasFileKeywords = fileKeywords.some(keyword => 
@@ -174,7 +267,21 @@ export const mightContainFiles = (text) => {
   );
 
   const hasCodeBlocks = text.includes('```');
-  const hasFileExtensions = /\w+\.\w+/.test(text);
+  const hasFileExtensions = /[\w.-]+\.(js|jsx|ts|tsx|py|java|cpp|c|cs|php|rb|go|rs|swift|html|css|json|md|sql|txt|xml|yaml|yml|pptx|pdf|docx|xlsx|csv)/i.test(text);
+  const hasMultiFileIndicator = text.includes('📁 MULTIPLE FILES GENERATED') || text.includes('files that can be downloaded as a ZIP package');
 
-  return hasFileKeywords && hasCodeBlocks && hasFileExtensions;
+  return (hasFileKeywords && hasCodeBlocks && hasFileExtensions) || hasMultiFileIndicator;
+};
+
+/**
+ * Checks if the response contains multiple files
+ * @param {string} text - The AI response text
+ * @returns {boolean} - True if response contains multiple files
+ */
+export const isMultiFileResponse = (text) => {
+  if (!text || typeof text !== 'string') return false;
+  
+  return text.includes('📁 MULTIPLE FILES GENERATED') || 
+         text.includes('files that can be downloaded as a ZIP package') ||
+         (text.match(/```[\w.-]+\.\w+/g) || []).length > 1;
 }; 

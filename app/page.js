@@ -298,7 +298,22 @@ export default function ChatPage() {
         messagesToSend = [
           { 
             role: 'system', 
-            content: 'Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, `code` for inline code, ``` for code blocks, and proper markdown lists (not HTML tags). When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url). When asked to create or generate files, ALWAYS provide the actual file content in this exact format: ```filename.ext\nactual code content here\n```. IMPORTANT: Use the filename as the language identifier, not the programming language. For example, use ```data_analysis.py\ncode here\n``` NOT ```python\ncode here\n```.' 
+            content: `Please use markdown formatting for your responses. Use **bold** for emphasis, *italic* for subtle emphasis, \`code\` for inline code, \`\`\` for code blocks, and proper markdown lists (not HTML tags). When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url). 
+
+IMPORTANT FILE GENERATION RULES:
+1. When asked to create or generate files, ALWAYS provide the actual file content in this exact format: \`\`\`filename.ext\nactual code content here\n\`\`\`. Use the filename as the language identifier, not the programming language.
+2. When creating MULTIPLE files, start your response with "📁 MULTIPLE FILES GENERATED" to indicate a multi-file response.
+3. For PowerPoint requests, create a structured markdown outline with sections like: \`\`\`presentation.pptx\n# Slide 1: Title\n## Subtitle\n- Bullet point 1\n- Bullet point 2\n\n# Slide 2: Content\n...\`\`\`
+4. For PDF reports, create comprehensive structured content with proper markdown formatting: \`\`\`report.pdf\n# Report Title\n\n## Executive Summary\nBrief overview of key findings and recommendations.\n\n## Introduction\nBackground and context of the report.\n\n## Methodology\nHow the analysis was conducted.\n\n## Key Findings\n- Finding 1: Detailed explanation\n- Finding 2: Detailed explanation\n- Finding 3: Detailed explanation\n\n## Analysis\nDetailed analysis with subsections:\n\n### Market Trends\nDescription of trends observed.\n\n### Performance Metrics\nKey performance indicators and their analysis.\n\n## Recommendations\n1. **Short-term actions**: Immediate steps to take\n2. **Medium-term strategy**: 3-6 month plans\n3. **Long-term vision**: Future considerations\n\n## Conclusion\nSummary of the entire report.\n\n## Appendix\nSupporting data and additional information.\`\`\`
+5. When generating multiple related files (like a project), mention "This response contains X files that can be downloaded as a ZIP package."
+
+Example multi-file response:
+📁 MULTIPLE FILES GENERATED
+This response contains 3 files that can be downloaded as a ZIP package.
+
+\`\`\`index.html\n<!DOCTYPE html>...\`\`\`
+\`\`\`style.css\nbody { margin: 0; }...\`\`\`
+\`\`\`script.js\nconsole.log('Hello');\`\`\`` 
           },
           ...newMessages
         ]
