@@ -575,6 +575,8 @@ This response contains 3 files that can be downloaded as a ZIP package.
           isLoading={isLoading}
           onSend={sendMessage}
           onFileUpload={handleFileUpload}
+          webSearchMode={webSearchMode}
+          onClearWebSearch={() => setWebSearchMode(false)}
         />
       </div>
     </div>

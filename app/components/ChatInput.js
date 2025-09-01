@@ -7,7 +7,9 @@ export default function ChatInput({
   setInput, 
   isLoading, 
   onSend,
-  onFileUpload 
+  onFileUpload,
+  webSearchMode, // whether web search mode is active
+  onClearWebSearch // handler to clear web search mode
 }) {
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -171,6 +173,24 @@ export default function ChatInput({
           )}
 
           <div className="flex items-end gap-3 bg-gray-800 rounded-3xl p-3">
+            {/* Web search active indicator */}
+            {webSearchMode && (
+              <div className="flex items-center gap-2 bg-green-600 bg-opacity-20 border border-green-400 text-green-200 px-3 py-1 rounded-full text-sm">
+                <span className="text-lg">🌐</span>
+                <span className="truncate">Web search active</span>
+                <button
+                  onClick={() => {
+                    if (onClearWebSearch) onClearWebSearch()
+                    // also notify parent that file/upload cleared
+                    if (onFileUpload) onFileUpload(null)
+                  }}
+                  title="Turn off web search"
+                  className="ml-2 text-green-200 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             {/* Plus button with dropdown */}
             <input
               ref={fileInputRef}
@@ -194,7 +214,11 @@ export default function ChatInput({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
-            placeholder={uploadedFile ? "Ask me anything about the uploaded document..." : "Ask anything"}
+            placeholder={
+              uploadedFile ? "Ask me anything about the uploaded document..." :
+              webSearchMode ? "🔍 Enter a web search query..." :
+              "Ask anything"
+            }
             className="flex-1 bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[24px] max-h-[200px]"
             rows="1"
             disabled={isLoading || isUploading}
