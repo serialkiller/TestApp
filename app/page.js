@@ -32,6 +32,9 @@ export default function ChatPage() {
 
   // Available models for selection
   const availableModels = [
+    { id: 'gpt-5', name: 'GPT-5', description: 'Latest and most advanced GPT-5 model with unified intelligence' },
+    { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Fast and efficient GPT-5 variant' },
+    { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Lightweight GPT-5 model for quick responses' },
     { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest and most capable GPT-4.1 model' },
     { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast and efficient GPT-4.1' },
     { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: 'Lightweight GPT-4.1 model' },
@@ -45,7 +48,7 @@ export default function ChatPage() {
   ]
 
   // Default model for API calls
-  const defaultModel = 'gpt-4.1'
+  const defaultModel = 'gpt-5'
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {

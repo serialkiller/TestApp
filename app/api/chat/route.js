@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(request) {
   try {
-    const { messages, model = 'gpt-4o' } = await request.json()
+    const { messages, model = 'gpt-5' } = await request.json()
 
     // Get API key from Supabase configuration
     const { data: configs, error } = await supabase
@@ -40,12 +40,22 @@ export async function POST(request) {
       apiKey: apiKey,
     })
 
-    const completion = await openai.chat.completions.create({
+    // Build completion parameters with GPT-5 specific features
+    const completionParams = {
       model: model,
       messages: messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-    })
+    }
+
+    // Add model-specific parameters
+    if (model.startsWith('gpt-5')) {
+      completionParams.max_completion_tokens = 4000
+      // GPT-5 uses default temperature (1) and doesn't support custom temperature
+    } else {
+      completionParams.max_tokens = 1000
+      completionParams.temperature = 0.7
+    }
+
+    const completion = await openai.chat.completions.create(completionParams)
 
     const message = completion.choices[0]?.message?.content
 

@@ -48,7 +48,8 @@ ${messages.length > 1 ? `AI response: "${messages[1].content.substring(0, 200)}.
 
 Title:`
 
-    const completion = await openai.chat.completions.create({
+    // Build completion parameters for title generation
+    const completionParams = {
       model: model,
       messages: [
         {
@@ -60,9 +61,18 @@ Title:`
           content: titlePrompt
         }
       ],
-      temperature: 0.3,
-      max_tokens: 20,
-    })
+    }
+
+    // Use appropriate parameters based on model
+    if (model.startsWith('gpt-5')) {
+      completionParams.max_completion_tokens = 20
+      // GPT-5 only supports default temperature (1), so we omit it
+    } else {
+      completionParams.temperature = 0.3
+      completionParams.max_tokens = 20
+    }
+
+    const completion = await openai.chat.completions.create(completionParams)
 
     const title = completion.choices[0]?.message?.content?.trim()
 
