@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [imageSuggestion, setImageSuggestion] = useState(null)
   const [messageFiles, setMessageFiles] = useState({}) // Store files for each message
   const [uploadedDocument, setUploadedDocument] = useState(null) // Store uploaded document
+  const [webSearchMode, setWebSearchMode] = useState(false) // Store web search mode
   const messagesEndRef = useRef(null)
 
   // Available models for selection
@@ -269,24 +270,63 @@ export default function ChatPage() {
   }
 
   const handleFileUpload = (fileData) => {
-    setUploadedDocument(fileData)
+    if (fileData?.type === 'web_search') {
+      setWebSearchMode(true)
+      setUploadedDocument(null)
+    } else {
+      setUploadedDocument(fileData)
+      setWebSearchMode(false)
+    }
   }
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
-    // Create user message for display (without document content)
-    const displayUserMessage = { 
-      role: 'user', 
-      content: uploadedDocument ? `📄 ${uploadedDocument.filename}\n\n${input.trim()}` : input.trim()
-    }
+    let displayUserMessage, apiUserMessage
 
-    // Create message for API (with full document content)
-    const apiUserMessage = { 
-      role: 'user', 
-      content: uploadedDocument 
-        ? `[Document: ${uploadedDocument.filename}]\n\n${input.trim()}\n\n--- Document Content ---\n${uploadedDocument.text}`
-        : input.trim()
+    if (webSearchMode) {
+      // Handle web search
+      displayUserMessage = { 
+        role: 'user', 
+        content: `🔍 Web Search\n\n${input.trim()}`
+      }
+      
+      // Perform web search first
+      try {
+        const searchResponse = await fetch('/api/web-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: input.trim() })
+        })
+        
+        const searchData = await searchResponse.json()
+        
+        apiUserMessage = { 
+          role: 'user', 
+          content: `[Web Search Results for: "${input.trim()}"]\n\n${searchData.results}\n\nBased on these search results, please provide a comprehensive answer to: ${input.trim()}`
+        }
+      } catch (error) {
+        console.error('Web search failed:', error)
+        apiUserMessage = { 
+          role: 'user', 
+          content: `Please answer this question (web search unavailable): ${input.trim()}`
+        }
+      }
+    } else if (uploadedDocument) {
+      // Handle document upload
+      displayUserMessage = { 
+        role: 'user', 
+        content: `📄 ${uploadedDocument.filename}\n\n${input.trim()}`
+      }
+      
+      apiUserMessage = { 
+        role: 'user', 
+        content: `[Document: ${uploadedDocument.filename}]\n\n${input.trim()}\n\n--- Document Content ---\n${uploadedDocument.text}`
+      }
+    } else {
+      // Regular message
+      displayUserMessage = { role: 'user', content: input.trim() }
+      apiUserMessage = { role: 'user', content: input.trim() }
     }
 
     const newMessages = [...messages, displayUserMessage]
@@ -418,8 +458,9 @@ This response contains 3 files that can be downloaded as a ZIP package.
       saveConversation(convId, finalMessages, title)
     } finally {
       setIsLoading(false)
-      // Clear uploaded document after sending
+      // Clear uploaded document and web search mode after sending
       setUploadedDocument(null)
+      setWebSearchMode(false)
     }
   }
 

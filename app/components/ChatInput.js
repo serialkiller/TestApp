@@ -13,6 +13,8 @@ export default function ChatInput({
   const fileInputRef = useRef(null)
   const [uploadedFile, setUploadedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef(null)
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -88,6 +90,28 @@ export default function ChatInput({
     }
   }
 
+  const handleWebSearch = () => {
+    setShowDropdown(false)
+    // Trigger web search mode
+    if (onFileUpload) {
+      onFileUpload({ type: 'web_search' })
+    }
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
       <div className="input-container">
@@ -116,26 +140,56 @@ export default function ChatInput({
           </div>
         )}
         
-        <div className="flex items-end gap-3 bg-gray-800 rounded-3xl p-3">
-          {/* File upload button (+ icon) */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.doc,.txt"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading || isUploading}
-            className="flex-shrink-0 w-8 h-8 bg-transparent text-gray-400 hover:text-white disabled:opacity-50 flex items-center justify-center text-xl font-light transition-colors"
-            title="Upload document (PDF, Word, TXT)"
-          >
-            {isUploading ? '⏳' : '+'}
-          </button>
-          
-          <textarea
+        <div className="relative">
+          {/* Dropdown menu */}
+          {showDropdown && (
+            <div 
+              ref={dropdownRef}
+              className="absolute bottom-full left-0 mb-2 bg-gray-700 rounded-xl shadow-lg py-2 min-w-[280px] z-50"
+            >
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click()
+                  setShowDropdown(false)
+                }}
+                disabled={isLoading || isUploading}
+                className="w-full px-4 py-3 text-left text-white hover:bg-gray-600 flex items-center gap-3 transition-colors"
+              >
+                <span className="text-lg">📎</span>
+                <span>Add photos & files</span>
+              </button>
+              
+              <button
+                onClick={handleWebSearch}
+                disabled={isLoading}
+                className="w-full px-4 py-3 text-left text-white hover:bg-gray-600 flex items-center gap-3 transition-colors"
+              >
+                <span className="text-lg">🔍</span>
+                <span>Web search</span>
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-end gap-3 bg-gray-800 rounded-3xl p-3">
+            {/* Plus button with dropdown */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.docx,.doc,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              disabled={isLoading || isUploading}
+              className="flex-shrink-0 w-8 h-8 bg-transparent text-gray-400 hover:text-white disabled:opacity-50 flex items-center justify-center text-xl font-light transition-colors"
+              title="Add files or search the web"
+            >
+              {isUploading ? '⏳' : '+'}
+            </button>
+            
+            <textarea
             ref={textareaRef}
             value={input}
             onChange={handleInputChange}
@@ -153,6 +207,7 @@ export default function ChatInput({
           >
             {isLoading ? '⋯' : '↑'}
           </button>
+          </div>
         </div>
       </div>
     </div>
