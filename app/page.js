@@ -28,6 +28,7 @@ export default function ChatPage() {
   const [tableSuggestion, setTableSuggestion] = useState(null)
   const [imageSuggestion, setImageSuggestion] = useState(null)
   const [messageFiles, setMessageFiles] = useState({}) // Store files for each message
+  const [uploadedDocument, setUploadedDocument] = useState(null) // Store uploaded document
   const messagesEndRef = useRef(null)
 
   // Available models for selection
@@ -267,13 +268,28 @@ export default function ChatPage() {
     window.location.href = '/config'
   }
 
+  const handleFileUpload = (fileData) => {
+    setUploadedDocument(fileData)
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
+    // Create user message for display (without document content)
+    const displayUserMessage = { 
+      role: 'user', 
+      content: uploadedDocument ? `📄 ${uploadedDocument.filename}\n\n${input.trim()}` : input.trim()
+    }
 
+    // Create message for API (with full document content)
+    const apiUserMessage = { 
+      role: 'user', 
+      content: uploadedDocument 
+        ? `[Document: ${uploadedDocument.filename}]\n\n${input.trim()}\n\n--- Document Content ---\n${uploadedDocument.text}`
+        : input.trim()
+    }
 
-    const userMessage = { role: 'user', content: input.trim() }
-    const newMessages = [...messages, userMessage]
+    const newMessages = [...messages, displayUserMessage]
     setMessages(newMessages)
     setInput('')
     setIsLoading(true)
@@ -286,15 +302,18 @@ export default function ChatPage() {
     }
 
     try {
+      // Prepare messages for API (use apiUserMessage for the last message)
+      let messagesToSendToAPI = [...messages, apiUserMessage]
+      
       // Add system message for comparison prompts to encourage table format
-      let messagesToSend = newMessages
+      let messagesToSend = messagesToSendToAPI
       if (getTableSuggestion(input.trim())) {
         messagesToSend = [
           { 
             role: 'system', 
             content: 'When comparing multiple items, please format your response in a table for better readability and organization. Use markdown formatting (not HTML tags) for lists, bold text, and other formatting. When explaining concepts that would benefit from visual aids, feel free to include relevant images using markdown image syntax: ![alt text](image_url). When asked to create or generate files, ALWAYS provide the actual file content in this exact format: ```filename.ext\nactual code content here\n```. IMPORTANT: Use the filename as the language identifier, not the programming language. For example, use ```data_analysis.py\ncode here\n``` NOT ```python\ncode here\n```.' 
           },
-          ...newMessages
+          ...messagesToSendToAPI
         ]
       } else {
         // Add general system message to encourage markdown formatting
@@ -318,7 +337,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
 \`\`\`style.css\nbody { margin: 0; }...\`\`\`
 \`\`\`script.js\nconsole.log('Hello');\`\`\`` 
           },
-          ...newMessages
+          ...messagesToSendToAPI
         ]
       }
 
@@ -399,6 +418,8 @@ This response contains 3 files that can be downloaded as a ZIP package.
       saveConversation(convId, finalMessages, title)
     } finally {
       setIsLoading(false)
+      // Clear uploaded document after sending
+      setUploadedDocument(null)
     }
   }
 
@@ -512,6 +533,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
           setInput={setInput}
           isLoading={isLoading}
           onSend={sendMessage}
+          onFileUpload={handleFileUpload}
         />
       </div>
     </div>
