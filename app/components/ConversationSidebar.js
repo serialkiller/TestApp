@@ -1,5 +1,8 @@
 'use client'
 
+import { useState, useMemo } from 'react'
+import Fuse from 'fuse.js'
+
 export default function ConversationSidebar({
   showSidebar,
   conversations,
@@ -11,6 +14,21 @@ export default function ConversationSidebar({
   onDeleteConversation,
   onToggleSidebar
 }) {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Initialize Fuse instance for fuzzy search
+  const fuse = useMemo(() => new Fuse(conversations, {
+    keys: ['title', 'messages.content'],
+    includeScore: true,
+    threshold: 0.4,
+    minMatchCharLength: 2
+  }), [conversations])
+
+  // Get filtered conversations based on search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations
+    return fuse.search(searchQuery).map(result => result.item)
+  }, [fuse, searchQuery, conversations])
   return (
     <>
       {/* Sidebar */}
@@ -18,13 +36,32 @@ export default function ConversationSidebar({
         showSidebar ? 'translate-x-0' : '-translate-x-full'
       } lg:relative lg:translate-x-0`}>
         <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-gray-700">
+          <div className="p-4 border-b border-gray-700 space-y-3">
             <button
               onClick={onCreateNew}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               + New Chat
             </button>
+            
+            {/* Search input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
@@ -36,9 +73,11 @@ export default function ConversationSidebar({
             </div>
             {conversations.length === 0 ? (
               <p className="text-gray-500 text-sm">No conversations yet</p>
+            ) : searchQuery && filteredConversations.length === 0 ? (
+              <p className="text-gray-500 text-sm">No conversations found for "{searchQuery}"</p>
             ) : (
               <div className="space-y-2">
-                {conversations.map((conv) => (
+                {filteredConversations.map((conv) => (
                   <ConversationItem
                     key={conv.id}
                     conversation={conv}

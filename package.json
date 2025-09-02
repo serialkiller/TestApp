@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",
     "formidable": "^3.5.4",
+    "fuse.js": "^7.1.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "jszip": "^3.10.1",
