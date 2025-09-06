@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import { NextResponse } from 'next/server'
 
 import { createClient } from '@supabase/supabase-js'
+import { prepareForChunkedSend } from '../../utils/serverTokenizer'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -40,30 +41,49 @@ export async function POST(request) {
       apiKey: apiKey,
     })
 
-    // Build completion parameters with GPT-5 specific features
-    const completionParams = {
-      model: model,
-      messages: messages,
+    // Use tokenizer helper to prepare chunks if last message is large
+    const { contextMessages, userChunks } = prepareForChunkedSend(messages, model)
+
+    let aggregatedAssistant = ''
+
+    // Send each chunk sequentially, including the preserved context messages before the first chunk
+    for (let i = 0; i < userChunks.length; i++) {
+      const chunk = userChunks[i]
+
+      const msgs = []
+      // include context only for the first chunk so the model sees prior conversation
+      if (i === 0 && contextMessages && contextMessages.length > 0) {
+        msgs.push(...contextMessages)
+      }
+      // append the current user chunk
+      msgs.push({ role: 'user', content: chunk })
+
+      const completionParams = {
+        model: model,
+        messages: msgs,
+      }
+
+      // Add model-specific parameters
+      if (model.startsWith('gpt-5')) {
+        completionParams.max_completion_tokens = 4000
+      } else {
+        completionParams.max_tokens = 1000
+        completionParams.temperature = 0.7
+      }
+
+      const completion = await openai.chat.completions.create(completionParams)
+      const assistantPart = completion.choices[0]?.message?.content
+
+      if (!assistantPart) {
+        // If any chunk fails to produce a reply, respond with an error
+        return NextResponse.json({ error: 'No response from OpenAI for a chunk' }, { status: 500 })
+      }
+
+      // Aggregate assistant replies. For improved behavior we could stream or summarize.
+      aggregatedAssistant += (aggregatedAssistant ? '\n' : '') + assistantPart
     }
 
-    // Add model-specific parameters
-    if (model.startsWith('gpt-5')) {
-      completionParams.max_completion_tokens = 4000
-      // GPT-5 uses default temperature (1) and doesn't support custom temperature
-    } else {
-      completionParams.max_tokens = 1000
-      completionParams.temperature = 0.7
-    }
-
-    const completion = await openai.chat.completions.create(completionParams)
-
-    const message = completion.choices[0]?.message?.content
-
-    if (!message) {
-      return NextResponse.json({ error: 'No response from OpenAI' }, { status: 500 })
-    }
-
-    return NextResponse.json({ message })
+    return NextResponse.json({ message: aggregatedAssistant })
 
   } catch (error) {
     console.error('OpenAI API error:', error)
