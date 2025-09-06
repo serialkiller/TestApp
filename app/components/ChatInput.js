@@ -28,18 +28,19 @@ export default function ChatInput({
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current
     if (textarea) {
-      textarea.style.height = 'auto'
+      // Only adjust if value changed
+      if (textarea.value !== input) return
+      textarea.style.height = '24px'
       textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px'
     }
-  }, [])
+  }, [input])
 
   const handleInputChange = useCallback((e) => {
     setInput(e.target.value)
-    // Debounce height adjustment to improve performance
-    requestAnimationFrame(() => {
+    if (!isLoading && !isUploading) {
       adjustTextareaHeight()
-    })
-  }, [setInput, adjustTextareaHeight])
+    }
+  }, [setInput, adjustTextareaHeight, isLoading, isUploading])
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0]
@@ -113,6 +114,16 @@ export default function ChatInput({
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+    // Reset textarea height when input is cleared or disabled
+    useEffect(() => {
+      const textarea = textareaRef.current
+      if (textarea) {
+        if (!input || isLoading || isUploading) {
+          textarea.style.height = '24px'
+        }
+      }
+    }, [input, isLoading, isUploading])
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
