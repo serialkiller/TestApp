@@ -1,5 +1,6 @@
 'use client'
 
+import React, { memo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -9,7 +10,7 @@ import { isMultiFileResponse } from '../utils/fileProcessor'
 import FileDisplay from './FileDisplay'
 import MultiFileDownload from './MultiFileDownload'
 
-export default function MessageBubble({ message, index, messageFiles = {} }) {
+function MessageBubble({ message, index, messageFiles = {} }) {
   const isUser = message.role === 'user'
   
   return (
@@ -33,6 +34,8 @@ export default function MessageBubble({ message, index, messageFiles = {} }) {
     </div>
   )
 }
+
+export default memo(MessageBubble)
 
 function AssistantMessage({ message, messageFiles, index }) {
   const files = messageFiles[index] || []
