@@ -132,12 +132,21 @@ function getMarkdownComponents() {
             alt={alt || 'Image'} 
             className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
             loading="lazy"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             onError={(e) => {
-              e.target.style.display = 'none';
-              const errorDiv = e.target.nextSibling;
-              if (errorDiv) {
-                errorDiv.style.display = 'block';
+              // If not already using the proxy, retry via server-side image proxy
+              const currentSrc = e.currentTarget.getAttribute('src') || ''
+              if (!currentSrc.startsWith('/api/image-proxy?')) {
+                const proxied = `/api/image-proxy?url=${encodeURIComponent(currentSrc)}`
+                e.currentTarget.setAttribute('src', proxied)
+                // Don't show error UI yet; let the proxy attempt
+                return
               }
+              // Proxy also failed – show error UI
+              e.currentTarget.style.display = 'none'
+              const errorDiv = e.currentTarget.nextSibling
+              if (errorDiv) errorDiv.style.display = 'block'
             }}
             {...props}
           />
