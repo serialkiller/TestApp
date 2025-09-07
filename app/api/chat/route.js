@@ -7,31 +7,43 @@ import { prepareForChunkedSend } from '../../utils/serverTokenizer'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Only create Supabase client if both URL and key are available
+let supabase = null
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey)
+}
 
 export async function POST(request) {
   try {
     const { messages, model = 'gpt-5' } = await request.json()
 
-    // Get API key from Supabase configuration
-    const { data: configs, error } = await supabase
-      .from('api_configs')
-      .select('api_key')
-      .eq('provider', 'openai')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    // Get API key from Supabase configuration or environment variable
+    let apiKey = process.env.API_KEY // Fallback to environment variable
+    
+    if (supabase) {
+      const { data: configs, error } = await supabase
+        .from('api_configs')
+        .select('api_key')
+        .eq('provider', 'openai')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
 
-    if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json({ error: 'Failed to fetch API configuration' }, { status: 500 })
+      if (error) {
+        console.error('Supabase error:', error)
+        return NextResponse.json({ error: 'Failed to fetch API configuration' }, { status: 500 })
+      }
+
+      if (configs && configs.length > 0) {
+        apiKey = configs[0].api_key
+      }
     }
 
-    if (!configs || configs.length === 0) {
-      return NextResponse.json({ error: 'No active API configuration found' }, { status: 500 })
+    if (!apiKey) {
+      return NextResponse.json({ 
+        error: 'No API key found. Please configure either Supabase with API configs or set API_KEY environment variable.' 
+      }, { status: 500 })
     }
-
-    const apiKey = configs[0].api_key
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages array is required' }, { status: 400 })

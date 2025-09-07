@@ -5,7 +5,11 @@ import JSZip from 'jszip'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Only create Supabase client if both URL and key are available
+let supabase = null
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey)
+}
 
 export async function POST(request) {
   try {
@@ -35,8 +39,8 @@ export async function POST(request) {
       console.log(`  - Content length: ${fileContent?.length || 0}`)
       console.log(`  - Has URL: ${!!file.fileUrl}`)
 
-      // If the file has a URL but no content, try to download it
-      if (file.fileUrl && !fileContent) {
+      // If the file has a URL but no content, try to download it (only if Supabase is available)
+      if (file.fileUrl && !fileContent && supabase) {
         try {
           const pathParts = file.fileUrl.split('/')
           const filePath = pathParts.slice(-2).join('/') // Get last two parts (folder/filename)
@@ -76,55 +80,55 @@ export async function POST(request) {
     // Generate the zip file as a buffer
     const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
 
-    // Try to create the bucket if it doesn't exist
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-    
-    if (!buckets?.find(bucket => bucket.name === 'generated-files')) {
-      const { error: createBucketError } = await supabase.storage.createBucket('generated-files', {
-        public: true,
-        allowedMimeTypes: ['application/zip', 'text/plain', 'application/json'],
-        fileSizeLimit: 52428800 // 50MB
-      })
+    if (supabase) {
+      // Try to create the bucket if it doesn't exist
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets()
       
-      if (createBucketError) {
-        console.error('Error creating bucket:', createBucketError)
+      if (!buckets?.find(bucket => bucket.name === 'generated-files')) {
+        const { error: createBucketError } = await supabase.storage.createBucket('generated-files', {
+          public: true,
+          allowedMimeTypes: ['application/zip', 'text/plain', 'application/json'],
+          fileSizeLimit: 52428800 // 50MB
+        })
+        
+        if (createBucketError) {
+          console.error('Error creating bucket:', createBucketError)
+        }
+      }
+
+      // Upload the zip file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('generated-files')
+        .upload(`zips/${zipFileName}`, zipBuffer, {
+          contentType: 'application/zip',
+          upsert: true
+        })
+
+      if (!uploadError) {
+        // Get the public URL for the zip file
+        const { data: urlData } = supabase.storage
+          .from('generated-files')
+          .getPublicUrl(`zips/${zipFileName}`)
+
+        return NextResponse.json({
+          success: true,
+          downloadUrl: urlData.publicUrl,
+          fileName: zipFileName,
+          fileCount: files.length
+        })
       }
     }
-
-    // Upload the zip file to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('generated-files')
-      .upload(`zips/${zipFileName}`, zipBuffer, {
-        contentType: 'application/zip',
-        upsert: true
-      })
-
-    if (uploadError) {
-      console.error('Error uploading zip to Supabase:', uploadError)
-      
-      // Fallback: return the zip file as a data URL for direct download
-      const base64Zip = Buffer.from(zipBuffer).toString('base64')
-      const dataUrl = `data:application/zip;base64,${base64Zip}`
-      
-      return NextResponse.json({
-        success: true,
-        downloadUrl: dataUrl,
-        fileName: zipFileName,
-        fileCount: files.length,
-        fallback: true
-      })
-    }
-
-    // Get the public URL for the zip file
-    const { data: urlData } = supabase.storage
-      .from('generated-files')
-      .getPublicUrl(`zips/${zipFileName}`)
-
+    
+    // Fallback: return the zip file as a data URL for direct download
+    const base64Zip = Buffer.from(zipBuffer).toString('base64')
+    const dataUrl = `data:application/zip;base64,${base64Zip}`
+    
     return NextResponse.json({
       success: true,
-      downloadUrl: urlData.publicUrl,
+      downloadUrl: dataUrl,
       fileName: zipFileName,
-      fileCount: files.length
+      fileCount: files.length,
+      fallback: true
     })
 
   } catch (error) {

@@ -29,7 +29,11 @@ function cleanLineForPDF(line) {
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Only create Supabase client if both URL and key are available
+let supabase = null
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey)
+}
 
 export async function POST(request) {
   try {
@@ -164,49 +168,50 @@ export async function POST(request) {
     const timestamp = Date.now()
     const pdfFileName = fileName || `report_${timestamp}.pdf`
 
-    // Try to create the bucket if it doesn't exist
-    const { data: buckets } = await supabase.storage.listBuckets()
+    if (supabase) {
+      // Try to create the bucket if it doesn't exist
+      const { data: buckets } = await supabase.storage.listBuckets()
+      
+      if (!buckets?.find(bucket => bucket.name === 'generated-files')) {
+        await supabase.storage.createBucket('generated-files', {
+          public: true,
+          allowedMimeTypes: ['application/pdf'],
+          fileSizeLimit: 52428800 // 50MB
+        })
+      }
+
+      // Upload PDF to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('generated-files')
+        .upload(`pdfs/${pdfFileName}`, uint8Array, {
+          contentType: 'application/pdf',
+          upsert: true
+        })
+
+      if (!uploadError) {
+        // Get the public URL for the PDF
+        const { data: urlData } = supabase.storage
+          .from('generated-files')
+          .getPublicUrl(`pdfs/${pdfFileName}`)
+
+        return NextResponse.json({
+          success: true,
+          downloadUrl: urlData.publicUrl,
+          fileName: pdfFileName,
+          size: uint8Array.length
+        })
+      }
+    }
     
-    if (!buckets?.find(bucket => bucket.name === 'generated-files')) {
-      await supabase.storage.createBucket('generated-files', {
-        public: true,
-        allowedMimeTypes: ['application/pdf'],
-        fileSizeLimit: 52428800 // 50MB
-      })
-    }
-
-    // Upload PDF to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('generated-files')
-      .upload(`pdfs/${pdfFileName}`, uint8Array, {
-        contentType: 'application/pdf',
-        upsert: true
-      })
-
-    if (uploadError) {
-      console.error('Error uploading PDF to Supabase:', uploadError)
-      
-      // Fallback: return PDF as base64 data URL
-      const base64Pdf = Buffer.from(uint8Array).toString('base64')
-      const dataUrl = `data:application/pdf;base64,${base64Pdf}`
-      
-      return NextResponse.json({
-        success: true,
-        downloadUrl: dataUrl,
-        fileName: pdfFileName,
-        fallback: true
-      })
-    }
-
-    // Get the public URL for the PDF
-    const { data: urlData } = supabase.storage
-      .from('generated-files')
-      .getPublicUrl(`pdfs/${pdfFileName}`)
-
+    // Fallback: return PDF as base64 data URL (either no Supabase or upload failed)
+    const base64Pdf = Buffer.from(uint8Array).toString('base64')
+    const dataUrl = `data:application/pdf;base64,${base64Pdf}`
+    
     return NextResponse.json({
       success: true,
-      downloadUrl: urlData.publicUrl,
+      downloadUrl: dataUrl,
       fileName: pdfFileName,
+      fallback: true,
       size: uint8Array.length
     })
 
