@@ -112,6 +112,12 @@ function normalizeMathDelimiters(text) {
   out = out.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `$$${inner.trim()}$$`)
   out = out.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner.trim()}$`)
 
+  // Normalize align environments to aligned (KaTeX-friendly)
+  out = out.replace(/\\begin\{align\*\}/g, '\\begin{aligned}')
+  out = out.replace(/\\end\{align\*\}/g, '\\end{aligned}')
+  out = out.replace(/\\begin\{align\}/g, '\\begin{aligned}')
+  out = out.replace(/\\end\{align\}/g, '\\end{aligned}')
+
   // Convert bare [ ... ] containing LaTeX commands to display math $$ ... $$
   // Heuristic: if content includes a backslash command like \frac, \sigma, \int, etc.
   const latexCmd = /(\\(frac|sum|int|partial|nabla|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|leq|geq|neq|cdot|times|ldots|to|infty|sqrt|overline|underline|hat|tilde|bar|vec|dot|ddot|mathrm|mathbb|mathcal|log|ln|sin|cos|tan|cot|sec|csc|exp|min|max|arg|max|lim|sum|prod|int|oint|partial))/i
@@ -121,6 +127,25 @@ function normalizeMathDelimiters(text) {
     }
     return m
   })
+
+  // If we find a closing aligned tag with $$ but no opening tag, wrap the preceding paragraph
+  const closing = '\\end{aligned}$$'
+  if (out.includes(closing) && !out.includes('\\begin{aligned}')) {
+    const endIdx = out.indexOf(closing)
+    const prevDoubleNL = out.lastIndexOf('\n\n', endIdx)
+    const start = prevDoubleNL === -1 ? 0 : prevDoubleNL + 2
+    const before = out.slice(0, start)
+    let block = out.slice(start, endIdx).trim()
+    // Drop any leading non-math lines in the block (e.g., headings)
+    const lines = block.split(/\r?\n/)
+    const firstMathIdx = lines.findIndex(l => /(&|\\\\|\\[a-zA-Z]+\{)/.test(l))
+    if (firstMathIdx > 0) {
+      block = lines.slice(firstMathIdx).join('\n')
+    }
+    const after = out.slice(endIdx + closing.length)
+    const wrapped = `$$\n\\begin{aligned}\n${block}\n\\end{aligned}$$`
+    out = before + wrapped + after
+  }
 
   return out
 }
