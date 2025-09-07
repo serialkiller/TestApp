@@ -20,6 +20,18 @@
   .assistant-message {
     @apply bg-gray-100 rounded-lg p-4;
   }
+
+  /* KaTeX math rendering tweaks */
+  .prose :where(.katex) {
+    font-size: 1.05em;
+  }
+  .prose :where(.katex-display) {
+    @apply my-4;
+    overflow-x: auto;
+  }
+  .prose :where(.katex-display > .katex) {
+    white-space: nowrap; /* allow horizontal scroll when needed */
+  }
   
   .input-container {
     @apply max-w-3xl mx-auto px-4 pb-6;

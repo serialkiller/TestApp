@@ -92,9 +92,35 @@ export const processTextContent = (text) => {
   
   // Then clean all other HTML tags
   processedText = cleanHtmlTags(processedText);
-  
+
   // Finally fix any remaining numbered list formatting
   processedText = fixNumberedLists(processedText);
+
+  // Normalize likely math delimiters to Markdown math ($ ... $ or $$ ... $$)
+  processedText = normalizeMathDelimiters(processedText);
   
   return processedText;
-}; 
+};
+
+// Convert common math wrappers to proper math delimiters so remark-math can render them
+function normalizeMathDelimiters(text) {
+  if (!text) return text
+
+  let out = text
+
+  // Support LaTeX-style \[ ... \] and \( ... \)
+  out = out.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `$$${inner.trim()}$$`)
+  out = out.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner.trim()}$`)
+
+  // Convert bare [ ... ] containing LaTeX commands to display math $$ ... $$
+  // Heuristic: if content includes a backslash command like \frac, \sigma, \int, etc.
+  const latexCmd = /(\\(frac|sum|int|partial|nabla|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|leq|geq|neq|cdot|times|ldots|to|infty|sqrt|overline|underline|hat|tilde|bar|vec|dot|ddot|mathrm|mathbb|mathcal|log|ln|sin|cos|tan|cot|sec|csc|exp|min|max|arg|max|lim|sum|prod|int|oint|partial))/i
+  out = out.replace(/\[\s*([\s\S]*?)\s*\]/g, (m, inner) => {
+    if (latexCmd.test(inner)) {
+      return `$$${inner.trim()}$$`
+    }
+    return m
+  })
+
+  return out
+}

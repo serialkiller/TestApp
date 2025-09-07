@@ -2,6 +2,8 @@
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import { processTextContent } from '../utils/textProcessor'
 import { isMultiFileResponse } from '../utils/fileProcessor'
 import FileDisplay from './FileDisplay'
@@ -52,7 +54,8 @@ function AssistantMessage({ message, messageFiles, index }) {
           if (textContent) {
             return (
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
                 className="prose prose-sm max-w-none"
                 components={getMarkdownComponents()}
               >
@@ -72,7 +75,8 @@ function AssistantMessage({ message, messageFiles, index }) {
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
       className="prose prose-sm max-w-none"
       components={getMarkdownComponents()}
     >
