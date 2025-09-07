@@ -50,7 +50,7 @@ export default function ChatPage() {
   ]
 
   // Default model for API calls
-  const defaultModel = 'gpt-5'
+  const defaultModel = 'gpt-4.1'
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {

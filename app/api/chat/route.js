@@ -15,7 +15,7 @@ if (supabaseUrl && supabaseServiceKey) {
 
 export async function POST(request) {
   try {
-    const { messages, model = 'gpt-5' } = await request.json()
+    const { messages, model = 'gpt-4.1' } = await request.json()
 
     // Get API key from Supabase configuration or environment variable
     let apiKey = process.env.API_KEY // Fallback to environment variable
@@ -49,49 +49,57 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Messages array is required' }, { status: 400 })
     }
 
-    const openai = new OpenAI({
-      apiKey: apiKey,
-    })
+    const openai = new OpenAI({ apiKey })
 
-    // Use tokenizer helper to prepare chunks if last message is large
-    const { contextMessages, userChunks } = prepareForChunkedSend(messages, model)
+    // Prepare chunks with improved tokenizer (overlap + dynamic budget)
+    // Reserve ~1200 tokens for output+safety inside helper.
+    const { contextMessages, userChunks, totalChunks } = prepareForChunkedSend(messages, model)
 
     let aggregatedAssistant = ''
 
-    // Send each chunk sequentially, including the preserved context messages before the first chunk
+    // Small helper to trim previous assistant for continuity context
+    const trimForContext = (text, maxChars = 4000) => {
+      if (!text) return ''
+      return text.length > maxChars ? text.slice(-maxChars) : text
+    }
+
+    // Send each chunk sequentially, keeping continuity
     for (let i = 0; i < userChunks.length; i++) {
       const chunk = userChunks[i]
 
       const msgs = []
-      // include context only for the first chunk so the model sees prior conversation
+
+      // Guidance system message to keep continuity and avoid repetition
+      msgs.push({
+        role: 'system',
+        content: `You will receive the user's input in multiple parts. This is part ${i + 1} of ${totalChunks}. Produce one continuous, coherent answer. Do not repeat content you've already produced; continue seamlessly from where you left off.`
+      })
+
+      // include prior preserved context only once (first chunk)
       if (i === 0 && contextMessages && contextMessages.length > 0) {
         msgs.push(...contextMessages)
+      } else if (i > 0 && aggregatedAssistant) {
+        // On subsequent chunks, give the model its previous output to maintain continuity
+        msgs.push({ role: 'assistant', content: trimForContext(aggregatedAssistant) })
       }
-      // append the current user chunk
+
+      // append the current user chunk (tagged to indicate part)
       msgs.push({ role: 'user', content: chunk })
 
       const completionParams = {
-        model: model,
+        model,
         messages: msgs,
-      }
-
-      // Add model-specific parameters
-      if (model.startsWith('gpt-5')) {
-        completionParams.max_completion_tokens = 4000
-      } else {
-        completionParams.max_tokens = 1000
-        completionParams.temperature = 0.7
+        max_tokens: 1000,
+        temperature: 0.7,
       }
 
       const completion = await openai.chat.completions.create(completionParams)
       const assistantPart = completion.choices[0]?.message?.content
 
       if (!assistantPart) {
-        // If any chunk fails to produce a reply, respond with an error
         return NextResponse.json({ error: 'No response from OpenAI for a chunk' }, { status: 500 })
       }
 
-      // Aggregate assistant replies. For improved behavior we could stream or summarize.
       aggregatedAssistant += (aggregatedAssistant ? '\n' : '') + assistantPart
     }
 
