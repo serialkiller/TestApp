@@ -86,11 +86,18 @@ export async function POST(request) {
       // append the current user chunk (tagged to indicate part)
       msgs.push({ role: 'user', content: chunk })
 
+      const isGPT5Family = model.startsWith('gpt-5')
       const completionParams = {
         model,
         messages: msgs,
-        max_tokens: 1000,
-        temperature: 0.7,
+      }
+
+      if (isGPT5Family) {
+        completionParams.max_completion_tokens = 1000
+        // GPT-5 family ignores temperature; default of 1 is applied by the API
+      } else {
+        completionParams.max_tokens = 1000
+        completionParams.temperature = 0.7
       }
 
       const completion = await openai.chat.completions.create(completionParams)

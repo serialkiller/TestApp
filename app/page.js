@@ -17,7 +17,7 @@ export default function ChatPage() {
   const [password, setPassword] = useState('')
   const [showPasswordInput, setShowPasswordInput] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('gpt-4.1')
+  const [selectedModel, setSelectedModel] = useState('gpt-5.2')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [storageInstance, setStorageInstance] = useState(null)
@@ -34,23 +34,14 @@ export default function ChatPage() {
 
   // Available models for selection
   const availableModels = [
-    { id: 'gpt-5', name: 'GPT-5', description: 'Latest and most advanced GPT-5 model with unified intelligence' },
-    { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Fast and efficient GPT-5 variant' },
-    { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Lightweight GPT-5 model for quick responses' },
-    { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest and most capable GPT-4.1 model' },
-    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast and efficient GPT-4.1' },
-    { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: 'Lightweight GPT-4.1 model' },
-    { id: 'gpt-4o', name: 'GPT-4o', description: 'Previous generation GPT-4o model' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and efficient GPT-4o' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'GPT-4 Turbo model' },
-    { id: 'gpt-4', name: 'GPT-4', description: 'Base GPT-4 model' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and cost-effective' },
-    { id: 'gpt-3.5-turbo-16k', name: 'GPT-3.5 Turbo 16K', description: 'GPT-3.5 Turbo with 16K context' },
-    { id: 'gpt-3.5-turbo-instruct', name: 'GPT-3.5 Turbo Instruct', description: 'Instruction-tuned GPT-3.5' },
+    { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Newest GPT-5.2 general model' },
+    { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Previous GPT-5.1 general model' },
+    { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest GPT-4.1 model' },
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal GPT-4o model' },
   ]
 
   // Default model for API calls
-  const defaultModel = 'gpt-4.1'
+  const defaultModel = 'gpt-5.2'
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {
