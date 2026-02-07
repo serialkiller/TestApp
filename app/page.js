@@ -84,26 +84,28 @@ export default function ChatPage() {
     }
   }
 
+  const persistConversations = async (updatedConversations) => {
+    const limitedConversations = updatedConversations.slice(0, 50)
+    if (storageInstance) {
+      await storageInstance.saveConversations(limitedConversations)
+    }
+    setConversations(limitedConversations)
+  }
+
   // Save conversation to storage
   const saveConversation = async (convId, msgs, title) => {
+    const existing = conversations.find(c => c.id === convId)
     const conversation = {
       id: convId,
       title: title,
       messages: msgs,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      archived: existing?.archived || false
     }
-    
+
     const existingConversations = conversations.filter(c => c.id !== convId)
     const updatedConversations = [conversation, ...existingConversations]
-    
-    // Keep only last 50 conversations
-    const limitedConversations = updatedConversations.slice(0, 50)
-    
-    if (storageInstance) {
-      await storageInstance.saveConversations(limitedConversations)
-    }
-    
-    setConversations(limitedConversations)
+    await persistConversations(updatedConversations)
   }
 
   // Load conversations from storage
@@ -112,7 +114,7 @@ export default function ChatPage() {
       setIsSyncing(true)
       try {
         const saved = await storageInstance.loadConversations()
-        setConversations(saved)
+        setConversations((saved || []).map((c) => ({ archived: false, ...c })))
       } catch (error) {
         console.error('Error loading conversations:', error)
       } finally {
@@ -164,16 +166,59 @@ export default function ChatPage() {
   // Delete conversation
   const deleteConversation = async (convId) => {
     const updatedConversations = conversations.filter(c => c.id !== convId)
-    
-    if (storageInstance) {
-      await storageInstance.saveConversations(updatedConversations)
-    }
-    
-    setConversations(updatedConversations)
-    
+    await persistConversations(updatedConversations)
+
     if (currentConversationId === convId) {
       createNewConversation()
     }
+  }
+
+  const bulkDeleteConversations = async (convIds) => {
+    const idSet = new Set(convIds)
+    const updatedConversations = conversations.filter(c => !idSet.has(c.id))
+    await persistConversations(updatedConversations)
+
+    if (convIds.includes(currentConversationId)) {
+      createNewConversation()
+    }
+  }
+
+  const archiveConversation = async (convId) => {
+    const updatedConversations = conversations.map((c) =>
+      c.id === convId ? { ...c, archived: true } : c
+    )
+    await persistConversations(updatedConversations)
+
+    if (currentConversationId === convId) {
+      createNewConversation()
+    }
+  }
+
+  const unarchiveConversation = async (convId) => {
+    const updatedConversations = conversations.map((c) =>
+      c.id === convId ? { ...c, archived: false } : c
+    )
+    await persistConversations(updatedConversations)
+  }
+
+  const bulkArchiveConversations = async (convIds) => {
+    const idSet = new Set(convIds)
+    const updatedConversations = conversations.map((c) =>
+      idSet.has(c.id) ? { ...c, archived: true } : c
+    )
+    await persistConversations(updatedConversations)
+
+    if (convIds.includes(currentConversationId)) {
+      createNewConversation()
+    }
+  }
+
+  const bulkUnarchiveConversations = async (convIds) => {
+    const idSet = new Set(convIds)
+    const updatedConversations = conversations.map((c) =>
+      idSet.has(c.id) ? { ...c, archived: false } : c
+    )
+    await persistConversations(updatedConversations)
   }
 
   const scrollToBottom = () => {
@@ -500,6 +545,11 @@ This response contains 3 files that can be downloaded as a ZIP package.
         onLoadConversation={loadConversation}
         onUpdateTitle={updateConversationTitle}
         onDeleteConversation={deleteConversation}
+        onBulkDeleteConversations={bulkDeleteConversations}
+        onArchiveConversation={archiveConversation}
+        onBulkArchiveConversations={bulkArchiveConversations}
+        onUnarchiveConversation={unarchiveConversation}
+        onBulkUnarchiveConversations={bulkUnarchiveConversations}
         onToggleSidebar={() => setShowSidebar(false)}
       />
 
