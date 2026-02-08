@@ -584,7 +584,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
          />
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto overscroll-contain pb-32">
+        <div className="chat-scroll flex-1 overflow-y-auto overscroll-contain pb-32">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center text-gray-500 dark:text-gray-400">
