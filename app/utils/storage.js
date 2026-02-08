@@ -8,15 +8,23 @@ export class ConversationStorage {
     this.useCloudStorage = getStorageMode() === 'supabase'
   }
 
+  normalizeAndSort(conversations = []) {
+    return [...conversations]
+      .map((c) => ({ ...c, archived: !!c.archived, timestamp: Number(c.timestamp || 0) }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+  }
+
   // Save conversations to both local and cloud storage
   async saveConversations(conversations) {
     try {
+      const normalized = this.normalizeAndSort(conversations)
+
       // Save to local storage first (fast)
-      localStorage.setItem(this.localKey, JSON.stringify(conversations))
+      localStorage.setItem(this.localKey, JSON.stringify(normalized))
       
       // Save to cloud storage if enabled (async, no blocking)
       if (this.useCloudStorage) {
-        await this.saveToCloud(conversations)
+        await this.saveToCloud(normalized)
       }
       
       return true
@@ -29,15 +37,18 @@ export class ConversationStorage {
   // Load conversations with cloud as source-of-truth when enabled
   async loadConversations() {
     try {
-      const localConversations = JSON.parse(localStorage.getItem(this.localKey) || '[]')
+      const localConversations = this.normalizeAndSort(
+        JSON.parse(localStorage.getItem(this.localKey) || '[]')
+      )
 
       if (this.useCloudStorage) {
         const cloudConversations = await this.loadFromCloud()
 
         // If cloud request succeeded (including empty array), trust cloud and mirror locally.
         if (Array.isArray(cloudConversations)) {
-          localStorage.setItem(this.localKey, JSON.stringify(cloudConversations))
-          return cloudConversations
+          const normalizedCloud = this.normalizeAndSort(cloudConversations)
+          localStorage.setItem(this.localKey, JSON.stringify(normalizedCloud))
+          return normalizedCloud
         }
       }
 
