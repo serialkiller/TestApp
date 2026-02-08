@@ -126,7 +126,7 @@ export default function ChatInput({
     }, [input, isLoading, isUploading])
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
       <div className="input-container">
         {/* File upload preview */}
         {uploadedFile && (

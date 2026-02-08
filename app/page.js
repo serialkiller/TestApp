@@ -30,6 +30,7 @@ export default function ChatPage() {
   const [messageFiles, setMessageFiles] = useState({}) // Store files for each message
   const [uploadedDocument, setUploadedDocument] = useState(null) // Store uploaded document
   const [webSearchMode, setWebSearchMode] = useState(false) // Store web search mode
+  const [isDarkMode, setIsDarkMode] = useState(true)
   const messagesEndRef = useRef(null)
 
   // Available models for selection
@@ -232,7 +233,12 @@ export default function ChatPage() {
   useEffect(() => {
     const savedModel = localStorage.getItem('api-model')
     const isAuth = localStorage.getItem('is-authenticated')
-    
+    const savedTheme = localStorage.getItem('theme')
+    const dark = savedTheme ? savedTheme === 'dark' : true
+
+    setIsDarkMode(dark)
+    document.documentElement.classList.toggle('dark', dark)
+
     if (isAuth === 'true') {
       setIsAuthenticated(true)
       setShowPasswordInput(false)
@@ -287,6 +293,13 @@ export default function ChatPage() {
   const saveModel = (model) => {
     setSelectedModel(model)
     localStorage.setItem('api-model', model)
+  }
+
+  const toggleTheme = () => {
+    const next = !isDarkMode
+    setIsDarkMode(next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+    document.documentElement.classList.toggle('dark', next)
   }
 
   const logout = () => {
@@ -503,8 +516,8 @@ This response contains 3 files that can be downloaded as a ZIP package.
 
   if (showPasswordInput) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
           <h1 className="text-2xl font-bold text-center mb-6">Husains App</h1>
           <p className="text-gray-600 mb-4 text-sm">
             Enter your password to access the application.
@@ -515,7 +528,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
               placeholder="Enter password..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onKeyPress={(e) => e.key === 'Enter' && authenticatePassword()}
             />
             <button
@@ -526,7 +539,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
               Login
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
             Contact your administrator for access credentials.
           </p>
         </div>
@@ -566,13 +579,15 @@ This response contains 3 files that can be downloaded as a ZIP package.
            onNewChat={createNewConversation}
            onLogout={logout}
            onConfig={goToConfig}
+           isDarkMode={isDarkMode}
+           onToggleTheme={toggleTheme}
          />
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto pb-32">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center text-gray-500">
+              <div className="text-center text-gray-500 dark:text-gray-400">
                 <h2 className="text-2xl font-semibold mb-2">How can I help you today?</h2>
                 <p>Start a conversation by typing a message below.</p>
               </div>
@@ -588,7 +603,7 @@ This response contains 3 files that can be downloaded as a ZIP package.
                 />
               ))}
               {isLoading && (
-                <div className="message-bubble bg-gray-50">
+                <div className="message-bubble bg-gray-50 dark:bg-gray-900">
                   <div className="assistant-message">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-medium">

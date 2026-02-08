@@ -14,7 +14,7 @@ function MessageBubble({ message, index, messageFiles = {} }) {
   const isUser = message.role === 'user'
   
   return (
-    <div className={`message-bubble ${isUser ? 'bg-white' : 'bg-gray-50'}`}>
+    <div className={`message-bubble ${isUser ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-900'}`}>
       <div className={isUser ? 'user-message' : 'assistant-message'}>
         <div className="flex items-start gap-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -59,7 +59,7 @@ function AssistantMessage({ message, messageFiles, index }) {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
-                className="prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none dark:prose-invert"
                 components={getMarkdownComponents()}
               >
                 {processTextContent(textContent)}
@@ -80,7 +80,7 @@ function AssistantMessage({ message, messageFiles, index }) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeKatex]}
-      className="prose prose-sm max-w-none"
+      className="prose prose-sm max-w-none dark:prose-invert"
       components={getMarkdownComponents()}
     >
       {processTextContent(message.content)}
@@ -104,7 +104,7 @@ function getMarkdownComponents() {
     table({node, children, ...props}) {
       return (
         <div className="overflow-x-auto my-4">
-          <table className="min-w-full border border-gray-300 rounded-lg overflow-hidden" {...props}>
+          <table className="min-w-full border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" {...props}>
             {children}
           </table>
         </div>
@@ -112,14 +112,14 @@ function getMarkdownComponents() {
     },
     th({node, children, ...props}) {
       return (
-        <th className="bg-gray-100 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-b border-gray-300" {...props}>
+        <th className="bg-gray-100 dark:bg-gray-800 px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-300 dark:border-gray-600" {...props}>
           {children}
         </th>
       )
     },
     td({node, children, ...props}) {
       return (
-        <td className="px-4 py-3 text-sm text-gray-900 border-b border-gray-200" {...props}>
+        <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700" {...props}>
           {children}
         </td>
       )
@@ -130,7 +130,7 @@ function getMarkdownComponents() {
           <img 
             src={src} 
             alt={alt || 'Image'} 
-            className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+            className="max-w-full h-auto rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
             loading="lazy"
             referrerPolicy="no-referrer"
             crossOrigin="anonymous"
@@ -151,7 +151,7 @@ function getMarkdownComponents() {
             {...props}
           />
           <div 
-            className="hidden p-4 bg-gray-100 rounded-lg text-center text-gray-500 text-sm"
+            className="hidden p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center text-gray-500 dark:text-gray-300 text-sm"
             style={{display: 'none'}}
           >
             <p>Image could not be loaded</p>

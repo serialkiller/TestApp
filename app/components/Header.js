@@ -10,23 +10,24 @@ export default function Header({
   onModelChange,
   onNewChat,
   onLogout,
-  onConfig
+  onConfig,
+  isDarkMode,
+  onToggleTheme
 }) {
   return (
     <>
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 p-4">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onToggleSidebar}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-md"
+              className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold truncate flex items-center gap-2">
+            <h1 className="text-xl font-semibold truncate flex items-center gap-2 text-gray-900 dark:text-gray-100">
               {conversationTitle || 'Husains App'}
               {isGeneratingTitle && (
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -34,6 +35,13 @@ export default function Header({
             </h1>
           </div>
           <div className="flex gap-2 items-center">
+            <button
+              onClick={onToggleTheme}
+              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md transition-colors"
+              title="Toggle dark mode"
+            >
+              {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
             <ModelSelector
               selectedModel={selectedModel}
               availableModels={availableModels}
@@ -61,12 +69,11 @@ export default function Header({
         </div>
       </header>
 
-      {/* Model Info */}
-      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+      <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
         <div className="max-w-3xl mx-auto">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-gray-600 dark:text-gray-300">
             Using: <span className="font-medium">{availableModels.find(m => m.id === selectedModel)?.name}</span>
-            <span className="text-gray-500 ml-2">- {availableModels.find(m => m.id === selectedModel)?.description}</span>
+            <span className="text-gray-500 dark:text-gray-400 ml-2">- {availableModels.find(m => m.id === selectedModel)?.description}</span>
           </p>
         </div>
       </div>
@@ -79,7 +86,7 @@ function ModelSelector({ selectedModel, availableModels, onChange }) {
     <select
       value={selectedModel}
       onChange={(e) => onChange(e.target.value)}
-      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md transition-colors border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
       title="Select AI Model"
     >
       {availableModels.map((model) => (
