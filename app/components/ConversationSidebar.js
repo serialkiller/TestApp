@@ -62,7 +62,7 @@ export default function ConversationSidebar({
 
   return (
     <>
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${
+      <div className={`sidebar fixed inset-y-0 left-0 z-50 w-72 h-screen overflow-hidden bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${
         showSidebar ? 'translate-x-0' : '-translate-x-full'
       } lg:relative lg:translate-x-0`}>
         <div className="flex flex-col h-full">
@@ -126,7 +126,7 @@ export default function ConversationSidebar({
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain p-4 pr-2">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-300">
                 {showArchived ? 'Archived Conversations' : 'Recent Conversations'}

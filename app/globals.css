@@ -68,3 +68,23 @@
     @apply max-w-full h-auto rounded-lg shadow-md;
   }
 }
+
+/* Sidebar scrollbar behavior: only visible on sidebar hover */
+.sidebar-scroll {
+  scrollbar-width: none; /* Firefox */
+  scrollbar-gutter: stable;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.sidebar:hover .sidebar-scroll {
+  scrollbar-width: thin;
+}
+.sidebar:hover .sidebar-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar:hover .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+  border-radius: 999px;
+}
