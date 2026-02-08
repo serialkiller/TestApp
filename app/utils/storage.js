@@ -26,28 +26,25 @@ export class ConversationStorage {
     }
   }
 
-  // Load conversations from local storage first, then sync from cloud
+  // Load conversations with cloud as source-of-truth when enabled
   async loadConversations() {
     try {
-      // Load from local storage first (fast)
       const localConversations = JSON.parse(localStorage.getItem(this.localKey) || '[]')
-      
-      // Try to sync from cloud storage if enabled
+
       if (this.useCloudStorage) {
         const cloudConversations = await this.loadFromCloud()
-        
-        if (cloudConversations && cloudConversations.length > 0) {
-          // Merge conversations, keeping the most recent version of each
-          const merged = this.mergeConversations(localConversations, cloudConversations)
-          localStorage.setItem(this.localKey, JSON.stringify(merged))
-          return merged
+
+        // If cloud request succeeded (including empty array), trust cloud and mirror locally.
+        if (Array.isArray(cloudConversations)) {
+          localStorage.setItem(this.localKey, JSON.stringify(cloudConversations))
+          return cloudConversations
         }
       }
-      
+
+      // Cloud unavailable/error -> fallback to local cache
       return localConversations
     } catch (error) {
       console.error('Error loading conversations:', error)
-      // Fallback to local storage only
       return JSON.parse(localStorage.getItem(this.localKey) || '[]')
     }
   }

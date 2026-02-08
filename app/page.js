@@ -249,11 +249,16 @@ export default function ChatPage() {
     setSelectedModel(savedModel || defaultModel)
   }, [])
 
-  // Load conversations when storage instance is available
+  // Load conversations when storage instance is available + keep syncing in background
   useEffect(() => {
-    if (storageInstance) {
+    if (!storageInstance) return
+
+    loadConversations()
+    const intervalId = setInterval(() => {
       loadConversations()
-    }
+    }, 15000)
+
+    return () => clearInterval(intervalId)
   }, [storageInstance])
 
   const authenticatePassword = async () => {
