@@ -69,45 +69,35 @@
   }
 }
 
-/* Sidebar scrollbar behavior: hidden until hover, then Windows-style gray */
-.sidebar-scroll {
-  scrollbar-width: none; /* Firefox */
-  scrollbar-gutter: stable;
-}
-.sidebar-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-.sidebar:hover .sidebar-scroll {
+/* Force consistent Windows-style gray scrollbars */
+.sidebar-scroll,
+.chat-scroll {
+  color-scheme: light;
   scrollbar-width: thin;
   scrollbar-color: #a8a8a8 #5a5a5a;
+  scrollbar-gutter: stable;
 }
-.sidebar:hover .sidebar-scroll::-webkit-scrollbar {
+
+.sidebar-scroll::-webkit-scrollbar,
+.chat-scroll::-webkit-scrollbar {
   width: 12px;
+  height: 12px;
 }
-.sidebar:hover .sidebar-scroll::-webkit-scrollbar-track {
-  background: #5a5a5a !important;
+
+.sidebar-scroll::-webkit-scrollbar-track,
+.chat-scroll::-webkit-scrollbar-track {
+  background: #5a5a5a;
   border-radius: 999px;
 }
-.sidebar:hover .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #a8a8a8 !important;
+
+.sidebar-scroll::-webkit-scrollbar-thumb,
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: #a8a8a8;
   border-radius: 999px;
   border: 2px solid #5a5a5a;
 }
 
-/* Main chat scrollbar: always visible and Windows-style gray */
-.chat-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: #a8a8a8 #5a5a5a;
-}
-.chat-scroll::-webkit-scrollbar {
-  width: 12px;
-}
-.chat-scroll::-webkit-scrollbar-track {
-  background: #5a5a5a !important;
-}
-.chat-scroll::-webkit-scrollbar-thumb {
-  background: #a8a8a8 !important;
-  border-radius: 999px;
-  border: 2px solid #5a5a5a;
+.sidebar-scroll::-webkit-scrollbar-thumb:hover,
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: #bcbcbc;
 }
