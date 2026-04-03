@@ -590,8 +590,8 @@ This response contains 3 files that can be downloaded as a ZIP package.
           >
             ☰
           </button>
-        )
-                 <Header
+        )}
+        <Header
            conversationTitle={conversationTitle}
            isGeneratingTitle={isGeneratingTitle}
            selectedModel={selectedModel}
