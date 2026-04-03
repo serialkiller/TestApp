@@ -474,7 +474,13 @@ This response contains 3 files that can be downloaded as a ZIP package.
         }
       }
 
-      const finalMessages = [...newMessages, { role: 'assistant', content: processedContent }]
+      const finalMessages = [...newMessages, {
+        role: 'assistant',
+        content: processedContent,
+        modelRequested: data.modelRequested || selectedModel,
+        modelUsed: data.modelUsed || selectedModel,
+        fallbackTriggered: Boolean(data.fallbackTriggered),
+      }]
       
       // Store files for this message (after finalMessages is defined)
       if (uploadedFiles.length > 0) {

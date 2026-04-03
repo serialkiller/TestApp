@@ -23,6 +23,19 @@ function MessageBubble({ message, index, messageFiles = {} }) {
             {isUser ? 'U' : 'AI'}
           </div>
           <div className="flex-1 min-w-0">
+            {!isUser && message.modelUsed && (
+              <div className="mb-2">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
+                  message.fallbackTriggered
+                    ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-200 dark:border-amber-700'
+                    : 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700'
+                }`}>
+                  {message.fallbackTriggered
+                    ? `Model: ${message.modelUsed} (fallback)`
+                    : `Model: ${message.modelUsed}`}
+                </span>
+              </div>
+            )}
             {isUser ? (
               <p className="whitespace-pre-wrap">{message.content}</p>
             ) : (

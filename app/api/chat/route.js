@@ -72,6 +72,8 @@ export async function POST(request) {
     const { contextMessages, userChunks, totalChunks } = prepareForChunkedSend(messages, model)
 
     let aggregatedAssistant = ''
+    let finalModelUsed = null
+    let fallbackTriggered = false
 
     // Small helper to trim previous assistant for continuity context
     const trimForContext = (text, maxChars = 4000) => {
@@ -123,6 +125,8 @@ export async function POST(request) {
           }
 
           completion = await openai.chat.completions.create(completionParams)
+          finalModelUsed = attemptModel
+          if (attemptModel !== model) fallbackTriggered = true
           break
         } catch (err) {
           lastErr = err
@@ -153,7 +157,12 @@ export async function POST(request) {
       aggregatedAssistant += (aggregatedAssistant ? '\n' : '') + assistantPart
     }
 
-    return NextResponse.json({ message: aggregatedAssistant })
+    return NextResponse.json({
+      message: aggregatedAssistant,
+      modelRequested: model,
+      modelUsed: finalModelUsed || model,
+      fallbackTriggered,
+    })
 
   } catch (error) {
     console.error('OpenAI API error:', error)
