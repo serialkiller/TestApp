@@ -581,6 +581,16 @@ This response contains 3 files that can be downloaded as a ZIP package.
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden lg:ml-0">
+        {!showSidebar && (
+          <button
+            onClick={() => setShowSidebar(true)}
+            className="md:hidden fixed bottom-20 left-4 z-30 bg-gray-900 text-white w-11 h-11 rounded-full shadow-lg border border-gray-700 flex items-center justify-center"
+            title="Open chat history"
+            aria-label="Open chat history"
+          >
+            ☰
+          </button>
+        )
                  <Header
            conversationTitle={conversationTitle}
            isGeneratingTitle={isGeneratingTitle}
