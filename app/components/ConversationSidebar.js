@@ -64,7 +64,7 @@ export default function ConversationSidebar({
     <>
       <div className={`sidebar fixed inset-y-0 left-0 z-50 w-72 h-screen overflow-hidden bg-gray-900 text-white transform transition-transform duration-300 ease-in-out ${
         showSidebar ? 'translate-x-0' : '-translate-x-full'
-      } lg:relative lg:translate-x-0`}>
+      } md:relative md:translate-x-0`}>
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-gray-700 space-y-3">
             <button
@@ -164,7 +164,7 @@ export default function ConversationSidebar({
 
       {showSidebar && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={onToggleSidebar}
         />
       )}
