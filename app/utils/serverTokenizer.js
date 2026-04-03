@@ -2,6 +2,9 @@
 
 // Model context window estimates (tokens)
 const MODEL_CONTEXT = {
+  'gpt-5.4': 128000,
+  'gpt-5.4-mini': 128000,
+  'gpt-5.4-nano': 128000,
   'gpt-4o': 128000,
   'gpt-4o-mini': 128000,
   'gpt-4.1': 128000,

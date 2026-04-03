@@ -13,9 +13,25 @@ if (supabaseUrl && supabaseServiceKey) {
   supabase = createClient(supabaseUrl, supabaseServiceKey)
 }
 
+const SUPPORTED_MODELS = new Set([
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-4.1',
+  'gpt-4o',
+  'gpt-4o-mini'
+])
+
+const MODEL_FALLBACKS = ['gpt-5.4-mini', 'gpt-4.1', 'gpt-4o-mini']
+
+const buildModelAttemptOrder = (requestedModel) => {
+  const first = SUPPORTED_MODELS.has(requestedModel) ? requestedModel : 'gpt-5.4-mini'
+  return [...new Set([first, ...MODEL_FALLBACKS])]
+}
+
 export async function POST(request) {
   try {
-    const { messages, model = 'gpt-4.1' } = await request.json()
+    const { messages, model = 'gpt-5.4-mini' } = await request.json()
 
     // Get API key from Supabase configuration or environment variable
     let apiKey = process.env.API_KEY // Fallback to environment variable
@@ -86,21 +102,48 @@ export async function POST(request) {
       // append the current user chunk (tagged to indicate part)
       msgs.push({ role: 'user', content: chunk })
 
-      const isGPT5Family = model.startsWith('gpt-5')
-      const completionParams = {
-        model,
-        messages: msgs,
+      const modelAttempts = buildModelAttemptOrder(model)
+      let completion = null
+      let lastErr = null
+
+      for (const attemptModel of modelAttempts) {
+        try {
+          const isGPT5Family = attemptModel.startsWith('gpt-5')
+          const completionParams = {
+            model: attemptModel,
+            messages: msgs,
+          }
+
+          if (isGPT5Family) {
+            completionParams.max_completion_tokens = 1000
+            // GPT-5 family ignores temperature; default of 1 is applied by the API
+          } else {
+            completionParams.max_tokens = 1000
+            completionParams.temperature = 0.7
+          }
+
+          completion = await openai.chat.completions.create(completionParams)
+          break
+        } catch (err) {
+          lastErr = err
+          const errText = (err?.message || '').toLowerCase()
+          const retryableModelError =
+            err?.status === 404 ||
+            err?.status === 400 ||
+            errText.includes('model') ||
+            errText.includes('unsupported') ||
+            errText.includes('does not exist')
+
+          if (!retryableModelError) {
+            throw err
+          }
+        }
       }
 
-      if (isGPT5Family) {
-        completionParams.max_completion_tokens = 1000
-        // GPT-5 family ignores temperature; default of 1 is applied by the API
-      } else {
-        completionParams.max_tokens = 1000
-        completionParams.temperature = 0.7
+      if (!completion) {
+        throw lastErr || new Error('No supported model succeeded for this request')
       }
 
-      const completion = await openai.chat.completions.create(completionParams)
       const assistantPart = completion.choices[0]?.message?.content
 
       if (!assistantPart) {

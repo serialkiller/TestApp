@@ -11,9 +11,25 @@ if (supabaseUrl && supabaseServiceKey) {
   supabase = createClient(supabaseUrl, supabaseServiceKey)
 }
 
+const SUPPORTED_MODELS = new Set([
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-4.1',
+  'gpt-4o',
+  'gpt-4o-mini'
+])
+
+const MODEL_FALLBACKS = ['gpt-5.4-mini', 'gpt-4.1', 'gpt-4o-mini']
+
+const buildModelAttemptOrder = (requestedModel) => {
+  const first = SUPPORTED_MODELS.has(requestedModel) ? requestedModel : 'gpt-5.4-mini'
+  return [...new Set([first, ...MODEL_FALLBACKS])]
+}
+
 export async function POST(request) {
   try {
-    const { messages, model = 'gpt-3.5-turbo' } = await request.json()
+    const { messages, model = 'gpt-5.4-mini' } = await request.json()
 
     // Get API key from Supabase configuration or environment variable
     let apiKey = process.env.API_KEY // Fallback to environment variable
@@ -60,31 +76,57 @@ ${messages.length > 1 ? `AI response: "${messages[1].content.substring(0, 200)}.
 
 Title:`
 
-    // Build completion parameters for title generation
-    const completionParams = {
-      model: model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that generates concise, descriptive titles for conversations. Keep titles under 6 words and make them relevant to the conversation topic.'
-        },
-        {
-          role: 'user',
-          content: titlePrompt
+    const modelAttempts = buildModelAttemptOrder(model)
+    let completion = null
+    let lastErr = null
+
+    for (const attemptModel of modelAttempts) {
+      try {
+        // Build completion parameters for title generation
+        const completionParams = {
+          model: attemptModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that generates concise, descriptive titles for conversations. Keep titles under 6 words and make them relevant to the conversation topic.'
+            },
+            {
+              role: 'user',
+              content: titlePrompt
+            }
+          ],
         }
-      ],
+
+        // Use appropriate parameters based on model
+        if (attemptModel.startsWith('gpt-5')) {
+          completionParams.max_completion_tokens = 20
+          // GPT-5 only supports default temperature (1), so we omit it
+        } else {
+          completionParams.temperature = 0.3
+          completionParams.max_tokens = 20
+        }
+
+        completion = await openai.chat.completions.create(completionParams)
+        break
+      } catch (err) {
+        lastErr = err
+        const errText = (err?.message || '').toLowerCase()
+        const retryableModelError =
+          err?.status === 404 ||
+          err?.status === 400 ||
+          errText.includes('model') ||
+          errText.includes('unsupported') ||
+          errText.includes('does not exist')
+
+        if (!retryableModelError) {
+          throw err
+        }
+      }
     }
 
-    // Use appropriate parameters based on model
-    if (model.startsWith('gpt-5')) {
-      completionParams.max_completion_tokens = 20
-      // GPT-5 only supports default temperature (1), so we omit it
-    } else {
-      completionParams.temperature = 0.3
-      completionParams.max_tokens = 20
+    if (!completion) {
+      throw lastErr || new Error('No supported model succeeded for title generation')
     }
-
-    const completion = await openai.chat.completions.create(completionParams)
 
     const title = completion.choices[0]?.message?.content?.trim()
 

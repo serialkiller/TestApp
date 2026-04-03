@@ -17,7 +17,7 @@ export default function ChatPage() {
   const [password, setPassword] = useState('')
   const [showPasswordInput, setShowPasswordInput] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('gpt-5.2')
+  const [selectedModel, setSelectedModel] = useState('gpt-5.4-mini')
   const [conversations, setConversations] = useState([])
   const [currentConversationId, setCurrentConversationId] = useState(null)
   const [storageInstance, setStorageInstance] = useState(null)
@@ -35,14 +35,16 @@ export default function ChatPage() {
 
   // Available models for selection
   const availableModels = [
-    { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Newest GPT-5.2 general model' },
-    { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Previous GPT-5.1 general model' },
-    { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Latest GPT-4.1 model' },
-    { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal GPT-4o model' },
+    { id: 'gpt-5.4', name: 'GPT-5.4', description: 'Latest flagship model (best quality)' },
+    { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini', description: 'Latest mini model (faster/cheaper)' },
+    { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano', description: 'Latest nano model (lowest latency)' },
+    { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Reliable fallback model' },
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal model' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast lightweight fallback' },
   ]
 
   // Default model for API calls
-  const defaultModel = 'gpt-5.2'
+  const defaultModel = 'gpt-5.4-mini'
 
   // Generate conversation title from first message
   const generateTitle = (firstMessage) => {
